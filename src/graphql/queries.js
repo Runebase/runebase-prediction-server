@@ -354,8 +354,24 @@ module.exports = {
   allOracles: async (root, { filter, orderBy, limit, skip }, { db: { Oracles } }) => {
     const query = filter ? { $or: buildOracleFilters(filter) } : {};
     let cursor = Oracles.cfind(query);
+    totalCount = await Oracles.count(query);
+    let hasNextPage;
+    let pageNumber;
+
+    if (_.isNumber(limit) && _.isNumber(skip)) {
+      const end = skip + limit;
+      hasNextPage = end < totalCount;
+      pageNumber = _.toInteger(end / limit); // just in case manually enter not start with new page, ex. limit 20, skip 2
+    }
     cursor = buildCursorOptions(cursor, orderBy, limit, skip);
-    return cursor.exec();
+    return {
+      totalCount,
+      oracles: cursor.exec(),
+      pageinfo: {
+        hasNextPage,
+        pageNumber,
+      },
+    };
   },
 
   searchOracles: async (root, { searchPhrase, filter, orderBy, limit, skip }, { db: { Oracles } }) => {

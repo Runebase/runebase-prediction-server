@@ -170,6 +170,17 @@ type AddressBalance {
   bot: String!
 }
 
+type pageInfo{
+  hasNextPage: Boolean
+  pageNumber: Int
+}
+
+type PaginatedOracles{
+  totalCount: Int!
+  oracles: [Oracle]!
+  pageinfo: pageInfo!
+}
+
 input TopicFilter {
   OR: [TopicFilter!]
   txid: String
@@ -235,9 +246,11 @@ input Order {
   direction: _OrderDirection!
 }
 
+
+
 type Query {
   allTopics(filter: TopicFilter, orderBy: [Order!], limit: Int, skip: Int): [Topic]!
-  allOracles(filter: OracleFilter, orderBy: [Order!], limit: Int, skip: Int ): [Oracle]!
+  allOracles(filter: OracleFilter, orderBy: [Order!], limit: Int, skip: Int ): PaginatedOracles!
   searchTopics(searchPhrase: String, filter: TopicFilter, orderBy: [Order!], limit: Int, skip: Int): [Topic]!
   searchOracles(searchPhrase: String, filter: OracleFilter, orderBy: [Order!], limit: Int, skip: Int): [Oracle]!
   allVotes(filter: VoteFilter, orderBy: [Order!], limit: Int, skip: Int): [Vote]!
