@@ -170,15 +170,16 @@ type AddressBalance {
   bot: String!
 }
 
-type pageInfo{
-  hasNextPage: Boolean
-  pageNumber: Int
+type PageInfo {
+  hasNextPage: Boolean!
+  pageNumber: Int!
+  count: Int!
 }
 
-type PaginatedOracles{
+type PaginatedOracles {
   totalCount: Int!
   oracles: [Oracle]!
-  pageinfo: pageInfo!
+  pageInfo: PageInfo
 }
 
 input TopicFilter {
