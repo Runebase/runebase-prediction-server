@@ -1,46 +1,40 @@
-const { each, split, includes } = require('lodash');
+const _ = require('lodash');
 
-const BodhiServer = require('./server');
-const BodhiConfig = require('./config');
-const BodhiDb = require('./db');
+const RunebasePredictionServer = require('./server');
+const RunebasePredictionConfig = require('./config');
+const RunebasePredictionDb = require('./db');
 const Constants = require('./constants');
 const Utils = require('./utils');
-const EmitterHelper = require('./utils/emitter-helper');
+const EmitterHelper = require('./utils/emitterHelper');
 const { getLogger } = require('./utils/logger');
-const AddressManager = require('./api/address-manager');
-const BaseContract = require('./api/base-contract');
+const AddressManager = require('./api/address_manager');
+const BaseContract = require('./api/base_contract');
 const Blockchain = require('./api/blockchain');
-const BodhiToken = require('./api/bodhi-token');
-const CentralizedOracle = require('./api/centralized-oracle');
-const DecentralizedOracle = require('./api/decentralized-oracle');
-const EventFactory = require('./api/event-factory');
+const RunebasePredictionToken = require('./api/runebaseprediction_token');
+const CentralizedOracle = require('./api/centralized_oracle');
+const DecentralizedOracle = require('./api/decentralized_oracle');
+const EventFactory = require('./api/event_factory');
 const Oracle = require('./api/oracle');
-const QtumUtils = require('./api/qtum-utils');
-const TopicEvent = require('./api/topic-event');
+const RunebaseUtils = require('./api/runebase_utils');
+const TopicEvent = require('./api/topic_event');
 const Transaction = require('./api/transaction');
 const Wallet = require('./api/wallet');
 
-const { startServer } = BodhiServer;
-const { BLOCKCHAIN_ENV } = Constants;
-const { getDevQtumExecPath } = Utils;
-
-// Find chain type (mainnet/testnet/regtest) from flags and start server
-each(process.argv, async (arg) => {
-  if (arg.startsWith('--chain')) {
-    const { MAINNET, TESTNET, REGTEST } = BLOCKCHAIN_ENV;
-    const chain = (split(arg, '=', 2))[1];
-    if (includes([MAINNET, TESTNET, REGTEST], chain)) {
-      await startServer(chain, getDevQtumExecPath());
-    } else {
-      throw Error(`Invalid type for --chain: ${chain}`);
-    }
-  }
-});
+const { startServer } = RunebasePredictionServer;
+const { blockchainEnv } = Constants;
+const { getDevRunebaseExecPath } = Utils;
+if (_.includes(process.argv, '--testnet')) {
+  startServer(blockchainEnv.TESTNET, getDevRunebaseExecPath());
+} else if (_.includes(process.argv, '--mainnet')) {
+  startServer(blockchainEnv.MAINNET, getDevRunebaseExecPath());
+} else {
+  console.log('testnet/mainnet flag not found. startServer() will need to be called explicitly.');
+}
 
 module.exports = {
-  BodhiServer,
-  BodhiConfig,
-  BodhiDb,
+  RunebasePredictionServer,
+  RunebasePredictionConfig,
+  RunebasePredictionDb,
   Constants,
   Utils,
   EmitterHelper,
@@ -48,12 +42,12 @@ module.exports = {
   AddressManager,
   BaseContract,
   Blockchain,
-  BodhiToken,
+  RunebasePredictionToken,
   CentralizedOracle,
   DecentralizedOracle,
   EventFactory,
   Oracle,
-  QtumUtils,
+  RunebaseUtils,
   TopicEvent,
   Transaction,
   Wallet,

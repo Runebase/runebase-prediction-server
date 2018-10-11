@@ -5,7 +5,8 @@ const { getInstance } = require('../qclient');
 
 const Blockchain = {
   async getBlock(args) {
-    const { blockHash, // string
+    const {
+      blockHash, // string
     } = args;
 
     if (_.isUndefined(blockHash)) {
@@ -24,7 +25,8 @@ const Blockchain = {
   },
 
   async getBlockHash(args) {
-    const { blockNum, // number
+    const {
+      blockNum, // number
     } = args;
 
     if (_.isUndefined(blockNum)) {
@@ -35,7 +37,8 @@ const Blockchain = {
   },
 
   async getTransactionReceipt(args) {
-    const { transactionId, // string
+    const {
+      transactionId, // string
     } = args;
 
     if (_.isUndefined(transactionId)) {

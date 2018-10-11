@@ -1,35 +1,32 @@
 module.exports = {
-  BLOCKCHAIN_ENV: {
+  blockchainEnv: {
     MAINNET: 'mainnet',
     TESTNET: 'testnet',
-    REGTEST: 'regtest',
   },
 
-  IPC_EVENT: {
+  ipcEvent: {
     SERVER_START_ERROR: 'server-start-error',
-    QTUMD_ERROR: 'qtumd-error',
-    QTUMD_KILLED: 'qtumd-killed',
+    RUNEBASED_ERROR: 'runebased-error',
+    RUNEBASED_KILLED: 'runebased-killed',
+    API_INITIALIZED: 'api-initialized',
     WALLET_ENCRYPTED: 'wallet-encrypted',
     WALLET_BACKUP: 'wallet-backup',
     WALLET_IMPORT: 'wallet-import',
   },
 
-  BIN_TYPE: {
-    QTUMD: 'qtumd',
-    QTUM_QT: 'qtum-qt',
-    QTUM_CLI: 'qtum-cli',
-  },
-
-  STATUS: {
-    CREATED: 'CREATED',
-    VOTING: 'VOTING',
-    WAITRESULT: 'WAITRESULT',
-    OPENRESULTSET: 'OPENRESULTSET',
+  txState: {
     PENDING: 'PENDING',
-    WITHDRAW: 'WITHDRAW',
+    SUCCESS: 'SUCCESS',
+    FAIL: 'FAIL',
   },
 
-  PHASE: {
+  execFile: {
+    RUNEBASED: 'runebased',
+    RUNEBASE_QT: 'runebase-qt',
+    RUNEBASE_CLI: 'runebase-cli',
+  },
+
+  phase: {
     BETTING: 'betting',
     VOTING: 'voting',
     RESULT_SETTING: 'resultSetting',
@@ -38,36 +35,6 @@ module.exports = {
     WITHDRAWING: 'withdrawing',
   },
 
-  WITHDRAW_TYPE: {
-    ESCROW: 'ESCROW',
-    WINNINGS: 'WINNINGS',
-  },
-
-  TOKEN: {
-    QTUM: 'QTUM',
-    BOT: 'BOT',
-  },
-
-  TX_TYPE: {
-    APPROVECREATEEVENT: 'APPROVECREATEEVENT',
-    CREATEEVENT: 'CREATEEVENT',
-    BET: 'BET',
-    APPROVESETRESULT: 'APPROVESETRESULT',
-    SETRESULT: 'SETRESULT',
-    APPROVEVOTE: 'APPROVEVOTE',
-    VOTE: 'VOTE',
-    FINALIZERESULT: 'FINALIZERESULT',
-    WITHDRAW: 'WITHDRAW',
-    WITHDRAWESCROW: 'WITHDRAWESCROW',
-    TRANSFER: 'TRANSFER',
-    RESETAPPROVE: 'RESETAPPROVE',
-  },
-
-  TX_STATE: {
-    PENDING: 'PENDING',
-    SUCCESS: 'SUCCESS',
-    FAIL: 'FAIL',
-  },
-
+  BLOCK_0_TIMESTAMP: 1530246365,
   SATOSHI_CONVERSION: 10 ** 8,
 };

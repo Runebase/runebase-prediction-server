@@ -134,8 +134,6 @@ $RECYCLE.BIN/
 # Distributables
 dist/
 
-# .env
-.env
+# log file
+src/logs/
 
-# Migrations
-src/db/migrations.dat

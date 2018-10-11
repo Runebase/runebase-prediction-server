@@ -1,30 +1,25 @@
-const { Config } = require('../config');
+const { Config, getContractMetadata } = require('../config');
 const Utils = require('../utils');
 const { db } = require('../db');
-const { TX_TYPE } = require('../constants');
 
 const DEFAULT_GAS_COST = formatGasCost(Config.DEFAULT_GAS_LIMIT * Config.DEFAULT_GAS_PRICE);
-const {
-  APPROVECREATEEVENT,
-  CREATEEVENT,
-  BET,
-  APPROVESETRESULT,
-  SETRESULT,
-  APPROVEVOTE,
-  VOTE,
-  TRANSFER,
-} = TX_TYPE;
+
+function getApproveObj(token, amount) {
+  return {
+    type: 'approve',
+    gasLimit: Config.DEFAULT_GAS_LIMIT,
+    gasCost: DEFAULT_GAS_COST,
+    token,
+    amount,
+  };
+}
 
 function formatGasCost(gasCost) {
   return gasCost.toFixed(2);
 }
 
 const Transaction = {
-  /**
-   * Returns the transaction costs and gas usage for an action.
-   * @param {object} args Arguments for getting the tx costs.
-   * @return {array} Array of tx costs.
-   */
+  // Returns the transaction cost(s) and gas usage for an action
   async transactionCost(args) {
     const {
       type, // string
@@ -36,41 +31,135 @@ const Transaction = {
       senderAddress, // address
     } = args;
 
+    // args validation
     if (!type) {
-      throw TypeError('type needs to be defined');
+      throw new TypeError('type needs to be defined');
     }
     if (!senderAddress) {
-      throw TypeError('senderAddress needs to be defined');
+      throw new TypeError('senderAddress needs to be defined');
     }
-    if ((type === APPROVECREATEEVENT
-      || type === BET
-      || type === APPROVESETRESULT
-      || type === APPROVEVOTE
-      || type === TRANSFER)
+    if ((type === 'APPROVECREATEEVENT'
+      || type === 'BET'
+      || type === 'APPROVESETRESULT'
+      || type === 'APPROVEVOTE'
+      || type === 'TRANSFER')
       && (!token || !amount)) {
-      throw TypeError('token and amount need to be defined');
+      throw new TypeError('token and amount need to be defined');
     }
-    if ((type === APPROVESETRESULT || type === APPROVEVOTE) && !topicAddress) {
-      throw TypeError('topicAddress needs to be defined');
+    if ((type === 'APPROVESETRESULT' || type === 'APPROVEVOTE') && !topicAddress) {
+      throw new TypeError('topicAddress needs to be defined');
     }
-    if (type === APPROVEVOTE && !oracleAddress) {
-      throw TypeError('oracleAddress needs to be defined');
-    }
-
-    let gasLimit = Config.DEFAULT_GAS_LIMIT;
-    let gasCost = DEFAULT_GAS_COST;
-    if (type === CREATEEVENT) {
-      gasLimit = Config.CREATE_CORACLE_GAS_LIMIT;
-      gasCost = formatGasCost(Config.CREATE_CORACLE_GAS_LIMIT * Config.DEFAULT_GAS_PRICE);
-    } else if (type === SETRESULT) {
-      gasLimit = Config.CREATE_DORACLE_GAS_LIMIT;
-      gasCost = formatGasCost(Config.CREATE_DORACLE_GAS_LIMIT * Config.DEFAULT_GAS_PRICE);
-    } else if (type === VOTE) {
-      gasLimit = await Utils.getVotingGasLimit(db.Oracles, oracleAddress, optionIdx, amount);
-      gasCost = formatGasCost(gasLimit * Config.DEFAULT_GAS_PRICE);
+    if (type === 'APPROVEVOTE' && !oracleAddress) {
+      throw new TypeError('oracleAddress needs to be defined');
     }
 
-    const costsArr = [{ type, gasLimit, gasCost, token, amount }];
+    // Skip approve if enough allowance
+    let txType = type;
+    if (txType === 'APPROVECREATEEVENT') {
+      const addressManager = getContractMetadata().AddressManager.address;
+      if (await Utils.isAllowanceEnough(senderAddress, addressManager, amount)) {
+        txType = 'CREATEEVENT';
+      }
+    } else if (txType === 'APPROVESETRESULT') {
+      if (await Utils.isAllowanceEnough(senderAddress, topicAddress, amount)) {
+        txType = 'SETRESULT';
+      }
+    } else if (txType === 'APPROVEVOTE') {
+      if (await Utils.isAllowanceEnough(senderAddress, topicAddress, amount)) {
+        txType = 'VOTE';
+      }
+    }
+
+    const costsArr = [];
+
+    if (txType.startsWith('APPROVE')) {
+      costsArr.push(getApproveObj(token, amount));
+    }
+
+    switch (txType) {
+      case 'APPROVECREATEEVENT':
+      case 'CREATEEVENT': {
+        costsArr.push({
+          type: 'createEvent',
+          gasLimit: Config.CREATE_CORACLE_GAS_LIMIT,
+          gasCost: formatGasCost(Config.CREATE_CORACLE_GAS_LIMIT * Config.DEFAULT_GAS_PRICE),
+          token,
+          amount,
+        });
+        break;
+      }
+      case 'BET': {
+        costsArr.push({
+          type: 'bet',
+          gasLimit: Config.DEFAULT_GAS_LIMIT,
+          gasCost: DEFAULT_GAS_COST,
+          token,
+          amount,
+        });
+        break;
+      }
+      case 'APPROVESETRESULT':
+      case 'SETRESULT': {
+        costsArr.push({
+          type: 'setResult',
+          gasLimit: Config.CREATE_DORACLE_GAS_LIMIT,
+          gasCost: formatGasCost(Config.CREATE_DORACLE_GAS_LIMIT * Config.DEFAULT_GAS_PRICE),
+          token,
+          amount,
+        });
+        break;
+      }
+      case 'APPROVEVOTE':
+      case 'VOTE': {
+        const gasLimit = await Utils.getVotingGasLimit(db.Oracles, oracleAddress, optionIdx, amount);
+        costsArr.push({
+          type: 'vote',
+          gasLimit,
+          gasCost: formatGasCost(gasLimit * Config.DEFAULT_GAS_PRICE),
+          token,
+          amount,
+        });
+        break;
+      }
+      case 'FINALIZERESULT': {
+        costsArr.push({
+          type: 'finalizeResult',
+          gasLimit: Config.DEFAULT_GAS_LIMIT,
+          gasCost: DEFAULT_GAS_COST,
+        });
+        break;
+      }
+      case 'WITHDRAW': {
+        costsArr.push({
+          type: 'withdraw',
+          gasLimit: Config.DEFAULT_GAS_LIMIT,
+          gasCost: DEFAULT_GAS_COST,
+        });
+        break;
+      }
+      case 'WITHDRAWESCROW': {
+        costsArr.push({
+          type: 'withdrawEscrow',
+          gasLimit: Config.DEFAULT_GAS_LIMIT,
+          gasCost: DEFAULT_GAS_COST,
+        });
+        break;
+      }
+      case 'TRANSFER': {
+        costsArr.push({
+          type: 'transfer',
+          gasLimit: Config.DEFAULT_GAS_LIMIT,
+          gasCost: DEFAULT_GAS_COST,
+          token,
+          amount,
+        });
+        break;
+      }
+      default: {
+        throw new Error(`Invalid transactionType: ${transactionType}`);
+      }
+    }
+
     return costsArr;
   },
 };

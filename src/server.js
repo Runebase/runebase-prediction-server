@@ -1,178 +1,115 @@
-const { isEmpty, isUndefined, each, split } = require('lodash');
+const _ = require('lodash');
+const restify = require('restify');
+const corsMiddleware = require('restify-cors-middleware');
 const { spawn, spawnSync } = require('child_process');
+const { execute, subscribe } = require('graphql');
+const { SubscriptionServer } = require('subscriptions-transport-ws');
+const fetch = require('node-fetch');
 const portscanner = require('portscanner');
 
-const { BIN_TYPE } = require('./constants');
-const { Config, setQtumEnv, getEnvConfig, isMainnet, getRPCPassword } = require('./config');
+const { execFile } = require('./constants');
+const {
+  Config, setRunebaseEnv, getRunebasePath, isMainnet, getRPCPassword,
+} = require('./config');
 const { initDB } = require('./db');
 const { initLogger, getLogger } = require('./utils/logger');
-const EmitterHelper = require('./utils/emitter-helper');
+const EmitterHelper = require('./utils/emitterHelper');
+const schema = require('./schema');
+const syncRouter = require('./route/sync');
+const apiRouter = require('./route/api');
 const { startSync } = require('./sync');
 const { getInstance } = require('./qclient');
-const { initApiServer } = require('./route');
 const Wallet = require('./api/wallet');
 
 const walletEncryptedMessage = 'Your wallet is encrypted. Please use a non-encrypted wallet for the server.';
 
-let qtumProcess;
+let runebaseProcess;
+let server;
 let encryptOk = false;
 let isEncrypted = false;
 let checkInterval;
+let checkApiInterval;
 let shutdownInterval;
 
-function getQtumProcess() {
-  return qtumProcess;
-}
+/*
+* Shuts down the already running runebased and starts runebase-qt.
+* @param runebaseqtPath {String} The full path to the runebase-qt binary.
+*/
+function startRunebaseWallet() {
+  // Start runebase-qt
+  const runebaseqtPath = `${getRunebasePath()}/${execFile.RUNEBASE_QT}`;
+  getLogger().debug(`runebase-qt dir: ${runebaseqtPath}`);
 
-/**
- * Sets the env and inits all the required processes.
- * @param {string} env BLOCKCHAIN_ENV var for mainnet, testnet, or regtest.
- * @param {string} qtumPath Full path to the Qtum bin folder.
- * @param {boolean} encryptionAllowed Are encrypted Qtum wallets allowed.
- */
-async function startServer(env, qtumPath, encryptionAllowed) {
-  try {
-    encryptOk = encryptionAllowed;
-    setQtumEnv(env, qtumPath);
-    initLogger();
-    await initDB();
-    startQtumProcess(false);
-  } catch (err) {
-    EmitterHelper.onServerStartError(err.message);
+  // Construct flags
+  const flags = ['-logevents'];
+  if (!isMainnet()) {
+    flags.push('-testnet');
   }
+
+  const qtProcess = spawn(runebaseqtPath, flags, {
+    detached: true,
+    stdio: 'ignore',
+  });
+  qtProcess.unref();
+  getLogger().debug(`runebase-qt started on PID ${qtProcess.pid}`);
+
+  // Kill backend process after runebase-qt has started
+  setTimeout(() => process.exit(), 2000);
 }
 
-/**
- * Starts the qtum daemon.
- * Will restart automatically if the chainstate is corrupted.
- * @param {boolean} reindex Should add the reindex flag when starting qtumd.
- */
-function startQtumProcess(reindex) {
-  try {
-    const flags = [
-      '-logevents',
-      '-rpcworkqueue=32',
-      `-rpcuser=${Config.RPC_USER}`,
-      `-rpcpassword=${getRPCPassword()}`,
-    ];
-    if (!isMainnet()) {
-      flags.push(`-${getEnvConfig().network}`);
-    }
-    if (reindex) {
-      flags.push('-reindex');
-    }
-    if (!isEmpty(process.env.QTUM_DATA_DIR)) {
-      flags.push(`-datadir=${process.env.QTUM_DATA_DIR}`);
-    }
-
-    const qtumdPath = `${getEnvConfig().qtumPath}/${BIN_TYPE.QTUMD}`;
-    getLogger().info(`qtumd dir: ${qtumdPath}`);
-
-    qtumProcess = spawn(qtumdPath, flags);
-    getLogger().info(`qtumd started on PID ${qtumProcess.pid}`);
-
-    qtumProcess.stdout.on('data', (data) => {
-      getLogger().debug(`qtumd output: ${data}`);
-    });
-
-    qtumProcess.stderr.on('data', (data) => {
-      getLogger().error(`qtumd failed with error: ${data}`);
-
-      if (data.includes('You need to rebuild the database using -reindex-chainstate')) {
-        // Clean old process first
-        killQtumProcess(false);
-        clearInterval(checkInterval);
-
-        // Restart qtumd with reindex flag
-        setTimeout(() => {
-          getLogger().info('Restarting and reindexing Qtum blockchain');
-          startQtumProcess(true);
-        }, 3000);
-      } else {
-        // Emit startup error event to Electron listener
-        EmitterHelper.onQtumError(data.toString('utf-8'));
-
-        // add delay to give some time to write to log file
-        setTimeout(() => process.exit(), 500);
-      }
-    });
-
-    qtumProcess.on('close', (code) => {
-      getLogger().debug(`qtumd exited with code ${code}`);
-    });
-
-    // repeatedly check if qtumd is running
-    checkInterval = setInterval(checkQtumdInit, 500);
-  } catch (err) {
-    throw Error(`startQtumProcess: ${err.message}`);
-  }
+function getRunebaseProcess() {
+  return runebaseProcess;
 }
 
-/**
- * Ensure qtumd is running before starting sync/API.
- */
-async function checkQtumdInit() {
-  try {
-    // getInfo throws an error if trying to be called before qtumd is running
-    await getInstance().getBlockchainInfo();
+// Checks to see if the runebased port is still in use
+function checkRunebasePort() {
+  const port = isMainnet() ? Config.RPC_PORT_MAINNET : Config.RPC_PORT_TESTNET;
+  portscanner.checkPortStatus(port, Config.HOSTNAME, (err, status) => {
+    if (err) {
+      getLogger().error(`Error: runebased: ${err.message}`);
+    }
+    if (status === 'closed') {
+      clearInterval(shutdownInterval);
 
-    // no error was caught, qtumd is initialized
-    clearInterval(checkInterval);
-    checkWalletEncryption();
-  } catch (err) {
-    if (err.message === walletEncryptedMessage) {
-      throw Error(err.message);
+      // Slight delay before sending runebased killed signal
+      setTimeout(() => EmitterHelper.onRunebaseKilled(), 1500);
     } else {
-      getLogger().debug(err.message);
+      getLogger().debug('Waiting for runebased to shut down.');
     }
-  }
+  });
 }
 
-/**
- * Checks if the wallet is encrypted to prompt the wallet unlock dialog.
- * Electron version only. Don't run remote version with encrypted wallet.
- */
-async function checkWalletEncryption() {
-  const res = await Wallet.getWalletInfo();
-  isEncrypted = !isUndefined(res.unlocked_until);
-
-  if (isEncrypted) {
-    // For Electron, flag passed via Electron Builder
-    if (encryptOk) {
-      EmitterHelper.onWalletEncrypted();
-      return;
+/*
+* Kills the running runebase process using the stop command.
+* @param emitEvent {Boolean} Flag to emit an event when runebase is fully shutdown.
+*/
+function killRunebaseProcess(emitEvent) {
+  if (runebaseProcess) {
+    const flags = [`-rpcuser=${Config.RPC_USER}`, `-rpcpassword=${getRPCPassword()}`];
+    if (!isMainnet()) {
+      flags.push('-testnet');
     }
+    flags.push('stop');
 
-    let flagFound = false;
-    each(process.argv, (arg) => {
-      if (arg === '--encryptok') {
-        // For Electron, flag passed via command-line
-        EmitterHelper.onWalletEncrypted();
-        flagFound = true;
-      } else if (arg.startsWith('--passphrase=')) {
-        // For dev purposes, unlock wallet directly in server
-        const passphrase = (split(arg, '=', 2))[1];
-        unlockWallet(passphrase);
-        flagFound = true;
+    const runebasecliPath = `${getRunebasePath()}/${execFile.RUNEBASE_CLI}`;
+    const res = spawnSync(runebasecliPath, flags);
+    const code = res.status;
+    if (res.stdout) {
+      getLogger().debug(`runebased stopped with code ${code}: ${res.stdout}`);
+    } else if (res.stderr) {
+      getLogger().error(`runebased stopped with code ${code}: ${res.stderr}`);
+      if (res.error) {
+        throw Error(res.error.message);
       }
-    });
-    if (flagFound) {
-      return;
     }
 
-    // No flags found to handle encryption, crash server
-    EmitterHelper.onServerStartError(walletEncryptedMessage);
-    throw Error(walletEncryptedMessage);
-  } else {
-    startServices();
+    // Repeatedly check if runebase port is in use
+    if (emitEvent) {
+      shutdownInterval = setInterval(checkRunebasePort, 500);
+    }
   }
 }
 
-/**
- * Used to unlock the wallet without having to use the Electron dialog.
- * The --passphrase flag with the passphrase must be passed via commandline.
- * @param {string} passphrase Passphrase to unlock wallet.
- */
 async function unlockWallet(passphrase) {
   // Unlock wallet
   await Wallet.walletPassphrase({ passphrase, timeout: Config.UNLOCK_SECONDS });
@@ -189,97 +126,194 @@ async function unlockWallet(passphrase) {
   }
 }
 
-/**
- * Starts the services following a successful qtumd launch.
- */
-function startServices() {
-  startSync(true);
-  initApiServer();
-}
+// Checks if the wallet is encrypted to prompt the wallet unlock dialog
+async function checkWalletEncryption() {
+  const res = await Wallet.getWalletInfo();
+  isEncrypted = !_.isUndefined(res.unlocked_until);
 
-/**
- * Shuts down the already running qtumd and starts qtum-qt.
- * Electron version only.
- */
-function startQtumWallet() {
-  // Start qtum-qt
-  const qtumqtPath = `${getEnvConfig().qtumPath}/${BIN_TYPE.QTUM_QT}`;
-  getLogger().debug(`qtum-qt dir: ${qtumqtPath}`);
-
-  // Construct flags
-  const flags = ['-logevents'];
-  if (!isMainnet()) {
-    flags.push('-testnet');
-  }
-
-  const qtProcess = spawn(qtumqtPath, flags, {
-    detached: true,
-    stdio: 'ignore',
-  });
-  qtProcess.unref();
-  getLogger().debug(`qtum-qt started on PID ${qtProcess.pid}`);
-
-  // Kill backend process after qtum-qt has started
-  setTimeout(() => process.exit(), 2000);
-}
-
-/**
- * Checks to see if the qtumd port is still in use.
- * This was necessary when switching from the dapp to the qtum wallet.
- */
-function checkQtumPort() {
-  const port = isMainnet() ? Config.RPC_PORT_MAINNET : Config.RPC_PORT_TESTNET;
-  portscanner.checkPortStatus(port, Config.HOSTNAME, (err, status) => {
-    if (err) {
-      getLogger().error(`Error: qtumd: ${err.message}`);
+  if (isEncrypted) {
+    // For Electron, flag passed via Electron Builder
+    if (encryptOk) {
+      EmitterHelper.onWalletEncrypted();
+      return;
     }
-    if (status === 'closed') {
-      clearInterval(shutdownInterval);
 
-      // Slight delay before sending qtumd killed signal
-      setTimeout(() => EmitterHelper.onQtumKilled(), 1500);
-    } else {
-      getLogger().debug('Waiting for qtumd to shut down.');
-    }
-  });
-}
-
-/**
- * Kills the running qtum process using the stop command.
- * @param {boolean} emitEvent Should emit an event when qtum is fully shutdown.
- */
-function killQtumProcess(emitEvent) {
-  if (qtumProcess) {
-    const flags = [`-rpcuser=${Config.RPC_USER}`, `-rpcpassword=${getRPCPassword()}`];
-    if (!isMainnet()) {
-      flags.push(`-${getEnvConfig().network}`);
-    }
-    flags.push('stop');
-
-    const qtumcliPath = `${getEnvConfig().qtumPath}/${BIN_TYPE.QTUM_CLI}`;
-    const res = spawnSync(qtumcliPath, flags);
-    const code = res.status;
-    if (res.stdout) {
-      getLogger().debug(`qtumd stopped with code ${code}: ${res.stdout}`);
-    } else if (res.stderr) {
-      getLogger().error(`qtumd stopped with code ${code}: ${res.stderr}`);
-      if (res.error) {
-        throw Error(res.error.message);
+    let flagFound = false;
+    _.each(process.argv, (arg) => {
+      if (arg === '--encryptok') {
+        // For Electron, flag passed via command-line
+        EmitterHelper.onWalletEncrypted();
+        flagFound = true;
+      } else if (arg.startsWith('--passphrase=')) {
+        // For dev purposes, unlock wallet directly in server
+        const passphrase = (_.split(arg, '=', 2))[1];
+        unlockWallet(passphrase);
+        flagFound = true;
       }
+    });
+    if (flagFound) {
+      return;
     }
 
-    // Repeatedly check if qtum port is in use
-    if (emitEvent) {
-      shutdownInterval = setInterval(checkQtumPort, 500);
+    // No flags found to handle encryption, crash server
+    EmitterHelper.onServerStartError(walletEncryptedMessage);
+    throw Error(walletEncryptedMessage);
+  } else {
+    startServices();
+  }
+}
+
+// Ensure runebased is running before starting sync/API
+async function checkRunebasedInit() {
+  try {
+    // getInfo throws an error if trying to be called before runebased is running
+    await getInstance().getInfo();
+
+    // no error was caught, runebased is initialized
+    clearInterval(checkInterval);
+    checkWalletEncryption();
+  } catch (err) {
+    if (err.message === walletEncryptedMessage) {
+      throw Error(err.message);
+    } else {
+      getLogger().debug(err.message);
     }
   }
+}
+
+function startRunebaseProcess(reindex) {
+  try {
+    const flags = ['-logevents', '-rpcworkqueue=32', `-rpcuser=${Config.RPC_USER}`, `-rpcpassword=${getRPCPassword()}`];
+    if (!isMainnet()) {
+      flags.push('-testnet');
+    }
+    if (reindex) {
+      flags.push('-reindex');
+    }
+
+    const runebasedPath = `${getRunebasePath()}/${execFile.RUNEBASED}`;
+    getLogger().info(`runebased dir: ${runebasedPath}`);
+
+    runebaseProcess = spawn(runebasedPath, flags);
+    getLogger().info(`runebased started on PID ${runebaseProcess.pid}`);
+
+    runebaseProcess.stdout.on('data', (data) => {
+      getLogger().debug(`runebased output: ${data}`);
+    });
+
+    runebaseProcess.stderr.on('data', (data) => {
+      getLogger().error(`runebased failed with error: ${data}`);
+
+      if (data.includes('You need to rebuild the database using -reindex-chainstate')) {
+        // Clean old process first
+        killRunebaseProcess(false);
+        clearInterval(checkInterval);
+
+        // Restart runebased with reindex flag
+        setTimeout(() => {
+          getLogger().info('Restarting and reindexing Runebase blockchain');
+          startRunebaseProcess(true);
+        }, 3000);
+      } else {
+        // Emit startup error event to Electron listener
+        EmitterHelper.onRunebaseError(data.toString('utf-8'));
+
+        // add delay to give some time to write to log file
+        setTimeout(() => process.exit(), 500);
+      }
+    });
+
+    runebaseProcess.on('close', (code) => {
+      getLogger().debug(`runebased exited with code ${code}`);
+    });
+
+    // repeatedly check if runebased is running
+    checkInterval = setInterval(checkRunebasedInit, 500);
+  } catch (err) {
+    throw Error(`runebased error: ${err.message}`);
+  }
+}
+
+// Create Restify server and apply routes
+async function startAPI() {
+  server = restify.createServer({ title: 'RunebasePrediction API' });
+  const cors = corsMiddleware({ origins: ['*'] });
+  server.pre(cors.preflight);
+  server.use(cors.actual);
+  server.use(restify.plugins.bodyParser({ mapParams: true }));
+  server.use(restify.plugins.queryParser());
+  server.on('after', (req, res, route, err) => {
+    if (route) {
+      getLogger().debug(`${route.methods[0]} ${route.spec.path} ${res.statusCode}`);
+    } else {
+      getLogger().error(`${err.message}`);
+    }
+  });
+
+  syncRouter.applyRoutes(server);
+  apiRouter.applyRoutes(server);
+
+  server.listen(Config.PORT, () => {
+    SubscriptionServer.create(
+      { execute, subscribe, schema },
+      { server, path: '/subscriptions' },
+    );
+    getLogger().info(`RunebasePrediction API is running at http://${Config.HOSTNAME}:${Config.PORT}.`);
+  });
+}
+
+// Ensure API is running before loading UI
+async function checkApiInit() {
+  try {
+    const res = await fetch(`http://${Config.HOSTNAME}:${Config.PORT}/graphql`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{"query":"{syncInfo{syncBlockNum,syncBlockTime,syncPercent,peerNodeCount}}"}',
+    });
+
+    if (res.status >= 200 && res.status < 300) {
+      clearInterval(checkApiInterval);
+      setTimeout(() => EmitterHelper.onApiInitialized(), 1000);
+    }
+  } catch (err) {
+    getLogger().debug(err.message);
+  }
+}
+
+function startServices() {
+  startSync();
+  startAPI();
+
+  checkApiInterval = setInterval(checkApiInit, 500);
+}
+
+/*
+* Sets the env and inits all the required processes.
+* @param env {String} blockchainEnv var for mainnet or testnet.
+* @param runebasePath {String} Full path to the Runebase execs folder.
+* @param encryptionAllowed {Boolean} Are encrypted Runebase wallets allowed.
+*/
+async function startServer(env, runebasePath, encryptionAllowed) {
+  try {
+    encryptOk = encryptionAllowed;
+    setRunebaseEnv(env, runebasePath);
+    initLogger();
+    await initDB();
+    startRunebaseProcess(false);
+  } catch (err) {
+    EmitterHelper.onServerStartError(err.message);
+  }
+}
+
+function getServer() {
+  return server;
 }
 
 function exit(signal) {
   getLogger().info(`Received ${signal}, exiting...`);
 
   try {
-    killQtumProcess(false);
+    killRunebaseProcess(false);
   } catch (err) {
     // catch error so exit can still call process.exit()
   }
@@ -291,13 +325,12 @@ function exit(signal) {
 process.on('SIGINT', exit);
 process.on('SIGTERM', exit);
 process.on('SIGHUP', exit);
-process.on('uncaughtException', exit);
 
 module.exports = {
-  getQtumProcess,
-  startServer,
+  getRunebaseProcess,
+  killRunebaseProcess,
   startServices,
-  killQtumProcess,
-  startQtumWallet,
-  exit,
+  startServer,
+  getServer,
+  startRunebaseWallet,
 };

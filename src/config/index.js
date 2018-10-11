@@ -1,28 +1,20 @@
-const fs = require('fs');
-const { includes, isEmpty, each, split, isNumber } = require('lodash');
+const _ = require('lodash');
 const crypto = require('crypto');
 
-const { BLOCKCHAIN_ENV } = require('../constants');
-const mainnetMetadata = require('./mainnet/contract-metadata');
-const testnetMetadata = require('./testnet/contract-metadata');
+const { blockchainEnv } = require('../constants');
+const mainnetMetadata = require('./mainnet/contract_metadata');
+const testnetMetadata = require('./testnet/contract_metadata');
 
-const API_PORT_MAINNET = 8989;
-const API_PORT_TESTNET = 6767;
-const API_PORT_REGTEST = 5555;
-
-const EXPLORER_MAINNET = 'https://explorer.qtum.org';
-const EXPLORER_TESTNET = 'https://testnet.qtum.org';
-
-const { MAINNET, TESTNET, REGTEST } = BLOCKCHAIN_ENV;
+const EXPLORER_TESTNET = 'https://testnet.runebase.io';
+const EXPLORER_MAINNET = 'https://explorer.runebase.io';
 
 const Config = {
-  IS_DEV: includes(process.argv, '--dev'),
-  PROTOCOL: includes(process.argv, '--local') ? 'http' : 'https',
-  HOSTNAME: 'localhost',
-  RPC_USER: 'bodhi',
-  RPC_PORT_TESTNET: 13889,
-  RPC_PORT_MAINNET: 3889,
-  DEFAULT_LOG_LEVEL: 'debug',
+  HOSTNAME: '127.0.0.1',
+  PORT: 8989,
+  RPC_USER: 'runebaseprediction',
+  RPC_PORT_TESTNET: 19432,
+  RPC_PORT_MAINNET: 9432,
+  DEFAULT_LOGLVL: 'debug',
   CONTRACT_VERSION_NUM: 0,
   TRANSFER_MIN_CONFIRMATIONS: 1,
   DEFAULT_GAS_LIMIT: 250000,
@@ -33,96 +25,64 @@ const Config = {
 };
 const rpcPassword = getRandomPassword(); // Generate random password for every session
 
-let qtumEnv; // qtumd chain network: mainnet/testnet/regtest
-let qtumPath; // path to Qtum executables
+let runebaseEnv; // Runebased environment var: testnet/mainnet
+let runebasePath; // Path to Runebase executables
 
-function setQtumEnv(env, path) {
-  if (isEmpty(env)) {
+function setRunebaseEnv(env, path) {
+  if (_.isEmpty(env)) {
     throw Error('env cannot be empty.');
   }
-  if (isEmpty(path)) {
+  if (_.isEmpty(path)) {
     throw Error('path cannot be empty.');
   }
-  if (qtumEnv) {
-    throw Error('qtumEnv was already set.');
+  if (runebaseEnv) {
+    throw Error('runebaseEnv was already set.');
   }
-  if (qtumPath) {
-    throw Error('qtumPath was already set.');
+  if (runebasePath) {
+    throw Error('runebasePath was already set.');
   }
 
-  qtumEnv = env;
-  qtumPath = path;
+  runebaseEnv = env;
+  runebasePath = path;
+  console.log(`Environment: ${runebaseEnv}`);
+  console.log(`Runebase Path: ${runebasePath}`);
 }
 
-/**
- * Returns the environment configuration variables.
- * @return {object} Environment config variables.
- */
-function getEnvConfig() {
-  if (!qtumEnv || !qtumPath) {
-    throw Error('setQtumEnv was not called yet.');
-  }
+function getRunebaseEnv() {
+  return runebaseEnv;
+}
 
-  let apiPort;
-  switch (qtumEnv) {
-    case MAINNET: {
-      apiPort = API_PORT_MAINNET;
-      break;
-    }
-    case TESTNET: {
-      apiPort = API_PORT_TESTNET;
-      break;
-    }
-    case REGTEST: {
-      apiPort = API_PORT_REGTEST;
-      break;
-    }
-    default: {
-      throw Error(`Invalid qtum environment: ${qtumEnv}`);
-    }
-  }
-
-  return { network: qtumEnv, qtumPath, apiPort };
+function getRunebasePath() {
+  return runebasePath;
 }
 
 function isMainnet() {
   // Throw an error to ensure no code is using this check before it is initialized
-  if (!qtumEnv) {
-    throw Error('qtumEnv not initialized yet.');
+  if (!runebaseEnv) {
+    throw Error('runebaseEnv not initialized yet before checking env');
   }
 
-  return qtumEnv === BLOCKCHAIN_ENV.MAINNET;
+  return runebaseEnv === blockchainEnv.MAINNET;
 }
 
 function getRPCPassword() {
   let password = rpcPassword;
-  each(process.argv, (arg) => {
-    if (includes(arg, '--rpcpassword')) {
-      password = (split(arg, '=', 2))[1];
+  _.each(process.argv, (arg) => {
+    if (_.includes(arg, '-rpcpassword')) {
+      password = (_.split(arg, '=', 2))[1];
     }
   });
 
   return password;
 }
 
-function getQtumRPCAddress() {
+function getRunebaseRPCAddress() {
   const port = isMainnet() ? Config.RPC_PORT_MAINNET : Config.RPC_PORT_TESTNET;
-  return `http://${Config.RPC_USER}:${getRPCPassword()}@${Config.HOSTNAME}:${port}`;
+  return `http://${Config.RPC_USER}:${getRPCPassword()}@localhost:${port}`;
 }
 
-function getQtumExplorerUrl() {
+function getRunebaseExplorerUrl() {
   return isMainnet() ? EXPLORER_MAINNET : EXPLORER_TESTNET;
-}
-
-function getSSLCredentials() {
-  if (!process.env.SSL_KEY_PATH || !process.env.SSL_CERT_PATH) {
-    throw Error('SSL Key and Cert paths not found.');
-  }
-
-  return {
-    key: fs.readFileSync(process.env.SSL_KEY_PATH),
-    cert: fs.readFileSync(process.env.SSL_CERT_PATH),
-  };
 }
 
 /*
@@ -132,7 +92,7 @@ function getSSLCredentials() {
 * @return {Object} The contract metadata.
 */
 function getContractMetadata(versionNum = Config.CONTRACT_VERSION_NUM) {
-  if (!isNumber(versionNum)) {
+  if (!_.isNumber(versionNum)) {
     throw new Error('Must supply a version number');
   }
 
@@ -144,7 +104,7 @@ function getContractMetadata(versionNum = Config.CONTRACT_VERSION_NUM) {
 
 /*
 * Creates a randomized RPC password.
-* Protects against external RPC attacks when the username/password are already known: bodhi/bodhi.
+* Protects against external RPC attacks when the username/password are already known: runebaseprediction/runebaseprediction.
 * @return {String} Randomized password.
 */
 function getRandomPassword() {
@@ -153,12 +113,12 @@ function getRandomPassword() {
 
 module.exports = {
   Config,
-  setQtumEnv,
-  getEnvConfig,
+  setRunebaseEnv,
+  getRunebaseEnv,
+  getRunebasePath,
   isMainnet,
   getRPCPassword,
-  getQtumRPCAddress,
-  getQtumExplorerUrl,
-  getSSLCredentials,
+  getRunebaseRPCAddress,
+  getRunebaseExplorerUrl,
   getContractMetadata,
 };

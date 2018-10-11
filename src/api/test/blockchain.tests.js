@@ -1,9 +1,9 @@
 const Chai = require('chai');
 const ChaiAsPromised = require('chai-as-promised');
 
-const { setQtumEnv } = require('../../config');
-const { BLOCKCHAIN_ENV } = require('../../constants');
-const { getDevQtumExecPath } = require('../../utils');
+const { setRunebaseEnv } = require('../../config');
+const { blockchainEnv } = require('../../constants');
+const { getDevRunebaseExecPath } = require('../../utils');
 const Blockchain = require('../../api/blockchain');
 const Mocks = require('./mock/blockchain');
 
@@ -13,7 +13,7 @@ const expect = Chai.expect;
 
 describe('Blockchain', () => {
   before(() => {
-    setQtumEnv(BLOCKCHAIN_ENV.TESTNET, getDevQtumExecPath());
+    setRunebaseEnv(blockchainEnv.TESTNET, getDevRunebaseExecPath());
   });
 
   describe('getBlockCount()', () => {

@@ -1,12 +1,11 @@
-const { Qweb3 } = require('qweb3');
+const { Rweb3 } = require('rweb3');
 
-const { getQtumRPCAddress } = require('./config');
-
+const { getRunebaseRPCAddress } = require('./config');
 const QClient = (() => {
   let instance;
 
   function createInstance() {
-    return new Qweb3(getQtumRPCAddress());
+    return new Rweb3(getRunebaseRPCAddress());
   }
 
   return {

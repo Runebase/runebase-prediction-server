@@ -2,10 +2,10 @@ const Chai = require('chai');
 const ChaiAsPromised = require('chai-as-promised');
 const _ = require('lodash');
 const path = require('path');
-const Utils = require('qweb3').Utils;
+const Utils = require('rweb3').Utils;
 
 const Wallet = require('../../api/wallet');
-const TestConfig = require('./config/test-config');
+const TestConfig = require('./config/test_config');
 
 Chai.use(ChaiAsPromised);
 const assert = Chai.assert;
@@ -13,8 +13,10 @@ const expect = Chai.expect;
 
 describe('Wallet', () => {
   describe('getAccountAddress()', () => {
-    it('returns a qtum address', async () => {
-      const res = await Wallet.getAccountAddress({ accountName: '' });
+    it('returns a runebase address', async () => {
+      const res = await Wallet.getAccountAddress({
+        accountName: '',
+      });
       assert.isDefined(res);
       assert.isString(res);
     });
@@ -53,7 +55,7 @@ describe('Wallet', () => {
 
         if (!_.isEmpty(innerArr)) {
           const item = innerArr[0];
-          assert.isTrue(Utils.isQtumAddress(item[0]));
+          assert.isTrue(Utils.isRunebaseAddress(item[0]));
           assert.isTrue(_.isNumber(item[1]));
         }
       }

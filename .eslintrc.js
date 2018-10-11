@@ -17,10 +17,7 @@ module.exports = {
     "consistent-return": 0,
     "max-len": [2,
       {
-        "code": 120,
-        "ignoreComments": true,
-        "ignoreUrls": true,
-        "ignoreStrings": true
+        "code": 120
       }
     ],
     "no-console": 0,
@@ -44,18 +41,13 @@ module.exports = {
     ],
     "no-unused-vars": [1,
       {
-        "args": "none",
+        "args": "all",
         "caughtErrors": "none"
       }
     ],
     "object-property-newline": [2,
       {
         "allowAllPropertiesOnSameLine": true
-      }
-    ],
-    "object-curly-newline": [2,
-      {
-        "ImportDeclaration": "never",
       }
     ],
     "prefer-destructuring": [0
