@@ -11,6 +11,7 @@ const AddressManager = require('./api/address_manager');
 const BaseContract = require('./api/base_contract');
 const Blockchain = require('./api/blockchain');
 const RunebasePredictionToken = require('./api/runebaseprediction_token');
+const FunToken = require('./api/fun_token');
 const CentralizedOracle = require('./api/centralized_oracle');
 const DecentralizedOracle = require('./api/decentralized_oracle');
 const EventFactory = require('./api/event_factory');
@@ -43,6 +44,7 @@ module.exports = {
   BaseContract,
   Blockchain,
   RunebasePredictionToken,
+  FunToken,
   CentralizedOracle,
   DecentralizedOracle,
   EventFactory,

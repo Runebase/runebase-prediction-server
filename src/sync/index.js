@@ -17,6 +17,7 @@ const Vote = require('../models/vote');
 const OracleResultSet = require('../models/oracleResultSet');
 const FinalResultSet = require('../models/finalResultSet');
 const runebasePredictionToken = require('../api/runebaseprediction_token');
+const funToken = require('../api/fun_token');
 const baseContract = require('../api/base_contract');
 const wallet = require('../api/wallet');
 const network = require('../api/network');
@@ -695,12 +696,12 @@ async function getAddressBalances() {
   await new Promise(async (resolve) => {
     sequentialLoop(addressBatches.length, async (loop) => {
       const getPredBalancePromises = [];
+      const getFunBalancePromises = [];
 
       _.map(addressBatches[loop.iteration()], async (address) => {
+        // Get PRED balance
         const getPredBalancePromise = new Promise(async (getPredBalanceResolve) => {
-          let predBalance = new BigNumber(0);
-
-          // Get PRED balance
+          let predBalance = new BigNumber(0);          
           try {
             const resp = await runebasePredictionToken.balanceOf({
               owner: address,
@@ -719,11 +720,31 @@ async function getAddressBalances() {
 
           getPredBalanceResolve();
         });
+        //GET FUN BALANCE
+        const getFunBalancePromise = new Promise(async (getFunBalanceResolve) => {
+          let funBalance = new BigNumber(0);
+          try {
+            const resp = await funToken.balanceOf({
+              owner: address,
+              senderAddress: address,
+            });
 
+            funBalance = resp.balance;
+          } catch (err) {
+            getLogger().error(`BalanceOf ${address}: ${err.message}`);
+            funBalance = '0';
+          }
+          const found = _.find(addressObjs, { address });
+          found.fun = funBalance.toString(10);
+
+          getFunBalanceResolve();
+        });
         getPredBalancePromises.push(getPredBalancePromise);
+        getFunBalancePromises.push(getFunBalancePromise);
       });
 
       await Promise.all(getPredBalancePromises);
+      await Promise.all(getFunBalancePromises);
       loop.next();
     }, () => {
       resolve();
@@ -737,6 +758,7 @@ async function getAddressBalances() {
       address,
       runebase: '0',
       pred: '0',
+      fun: '0',
     });
   }
 

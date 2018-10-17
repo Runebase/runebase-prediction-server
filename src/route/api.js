@@ -4,6 +4,7 @@ const Blockchain = require('../api/blockchain');
 const Wallet = require('../api/wallet');
 const AddressManager = require('../api/address_manager');
 const RunebasePredictionToken = require('../api/runebaseprediction_token');
+const FunToken = require('../api/fun_token');
 const BaseContract = require('../api/base_contract');
 const EventFactory = require('../api/event_factory');
 const TopicEvent = require('../api/topic_event');
@@ -251,6 +252,14 @@ apiRouter.post('/pred-balance', (req, res, next) => {
       onRequestError(res, err, next);
     });
 });
+apiRouter.post('/fun-balance', (req, res, next) => {
+  FunToken.balanceOf(req.params)
+    .then((result) => {
+      onRequestSuccess(res, result, next);
+    }, (err) => {
+      onRequestError(res, err, next);
+    });
+});
 
 /* BaseContract */
 apiRouter.post('/version', (req, res, next) => {
@@ -362,7 +371,14 @@ apiRouter.post('/total-pred-value', (req, res, next) => {
       onRequestError(res, err, next);
     });
 });
-
+apiRouter.post('/total-fun-value', (req, res, next) => {
+  TopicEvent.totalFunValue(req.params)
+    .then((result) => {
+      onRequestSuccess(res, result, next);
+    }, (err) => {
+      onRequestError(res, err, next);
+    });
+});
 apiRouter.post('/final-result', (req, res, next) => {
   TopicEvent.getFinalResult(req.params)
     .then((result) => {

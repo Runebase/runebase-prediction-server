@@ -7,6 +7,7 @@ const blockchain = require('../api/blockchain');
 const network = require('../api/network');
 const wallet = require('../api/wallet');
 const runebasePredictionToken = require('../api/runebaseprediction_token');
+const funToken = require('../api/fun_token');
 const eventFactory = require('../api/event_factory');
 const topicEvent = require('../api/topic_event');
 const centralizedOracle = require('../api/centralized_oracle');
@@ -733,6 +734,21 @@ module.exports = {
             txid = sentTx.txid;
           } catch (err) {
             getLogger().error(`Error calling RunebasePredictionToken.transfer: ${err.message}`);
+            throw err;
+          }
+          break;
+        }
+        case 'FUN': {
+          // Send transfer tx
+          try {
+            sentTx = await funToken.transfer({
+              to: receiverAddress,
+              value: amount,
+              senderAddress,
+            });
+            txid = sentTx.txid;
+          } catch (err) {
+            getLogger().error(`Error calling FunToken.transfer: ${err.message}`);
             throw err;
           }
           break;

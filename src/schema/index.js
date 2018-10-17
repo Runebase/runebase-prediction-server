@@ -231,6 +231,7 @@ type AddressBalance {
   address: String!,
   runebase: String!,
   pred: String!,
+  fun: String!,
 }
 
 enum _ModelMutationType {
@@ -251,6 +252,7 @@ enum _OracleStatusType {
 enum _TokenType {
   RUNES
   PRED
+  FUN
 }
 
 enum _OrderDirection {

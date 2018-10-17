@@ -5,6 +5,7 @@ const { getLogger } = require('../utils/logger');
 const blockchain = require('../api/blockchain');
 const wallet = require('../api/wallet');
 const runebasePredictionToken = require('../api/runebaseprediction_token');
+const funToken = require('../api/fun_token');
 const eventFactory = require('../api/event_factory');
 const centralizedOracle = require('../api/centralized_oracle');
 const decentralizedOracle = require('../api/decentralized_oracle');
