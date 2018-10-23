@@ -103,6 +103,8 @@ const FunToken = {
     res.balance = Utils.hexToDecimalString(res.balance);
     return res;
   },
+
+  
 };
 
 module.exports = FunToken;

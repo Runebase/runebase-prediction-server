@@ -15,7 +15,7 @@ const decentralizedOracle = require('../api/decentralized_oracle');
 const { Config, getContractMetadata } = require('../config');
 const { DBHelper } = require('../db');
 const { txState, phase } = require('../constants');
-const { calculateSyncPercent, getAddressBalances } = require('../sync');
+const { calculateSyncPercent, getAddressBalances, getExchangeBalances} = require('../sync');
 const Utils = require('../utils');
 
 const DEFAULT_LIMIT_NUM = 50;
@@ -275,8 +275,10 @@ module.exports = {
       }
       const syncPercent = await calculateSyncPercent(syncBlockNum, syncBlockTime);
       let addressBalances = [];
+      let exchangeBalances = [];
       if (includeBalance || false) {
         addressBalances = await getAddressBalances();
+        exchangeBalances = await getExchangeBalances();
       }
       const peerNodeCount = await network.getPeerNodeCount();
 
@@ -286,6 +288,7 @@ module.exports = {
         syncPercent,
         peerNodeCount,
         addressBalances,
+        exchangeBalances,
       };
     },
   },
