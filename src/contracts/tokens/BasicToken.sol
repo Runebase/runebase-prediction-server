@@ -1,14 +1,14 @@
 pragma solidity ^0.4.17;
 
 import './ERC20Basic.sol';
-import './libs/SafeMath.sol';
+import './libs/SafeMaths.sol';
 
 /**
  * @title Basic token
  * @dev Basic version of StandardToken, with no allowances.
  */
 contract BasicToken is ERC20Basic {
-  using SafeMath for uint256;
+  using SafeMaths for uint256;
 
   mapping(address => uint256) balances;
 
@@ -17,15 +17,6 @@ contract BasicToken is ERC20Basic {
   * @param _to The address to transfer to.
   * @param _value The amount to be transferred.
   */
-  function transfer(address _to, uint256 _value) public returns (bool) {
-    require(_to != address(0));
-
-    // SafeMath.sub will throw if there is not enough balance.
-    balances[msg.sender] = balances[msg.sender].sub(_value);
-    balances[_to] = balances[_to].add(_value);
-    emit Transfer(msg.sender, _to, _value);
-    return true;
-  }
 
   /**
   * @dev Gets the balance of the specified address.
