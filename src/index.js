@@ -20,6 +20,7 @@ const RunebaseUtils = require('./api/runebase_utils');
 const TopicEvent = require('./api/topic_event');
 const Transaction = require('./api/transaction');
 const Wallet = require('./api/wallet');
+const Exchange = require('./api/exchange');
 
 const { startServer } = RunebasePredictionServer;
 const { blockchainEnv } = Constants;
@@ -53,4 +54,5 @@ module.exports = {
   TopicEvent,
   Transaction,
   Wallet,
+  Exchange,
 };

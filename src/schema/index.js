@@ -96,6 +96,7 @@ type syncInfo {
   syncPercent: Int
   peerNodeCount: Int
   addressBalances: [AddressBalance]
+  exchangeBalances: [ExchangeBalance]  
 }
 
 type Query {
@@ -230,6 +231,15 @@ type TopicSubscriptionPayload {
 type AddressBalance {
   address: String!,
   runebase: String!,
+  pred: String!,
+  fun: String!,
+  exchangerunes: String!,
+  exchangepred: String!,
+  exchangefun: String!,
+}
+type ExchangeBalance {
+  address: String!,
+  runes: String!,
   pred: String!,
   fun: String!,
 }

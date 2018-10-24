@@ -25,8 +25,8 @@ const exchange = require('../api/exchange');
 
 const { getInstance } = require('../qclient');
 
-const RPC_BATCH_SIZE = 10;
-const BLOCK_BATCH_SIZE = 200;
+const RPC_BATCH_SIZE = 5;
+const BLOCK_BATCH_SIZE = 100;
 const SYNC_THRESHOLD_SECS = 1200;
 
 // hardcode sender address as it doesnt matter
@@ -688,7 +688,6 @@ async function getAddressBalances() {
           runebase: new BigNumber(addressArrItem[1]).multipliedBy(SATOSHI_CONVERSION).toString(10),
         });
         addressList.push(addressArrItem[0]);
-        console.log(addressArrItem[0]);
       });
     });
   } catch (err) {
@@ -700,6 +699,9 @@ async function getAddressBalances() {
     sequentialLoop(addressBatches.length, async (loop) => {
       const getPredBalancePromises = [];
       const getFunBalancePromises = [];
+      const getRunesExchangeBalancePromises = [];
+      const getPredExchangeBalancePromises = [];
+      const getFunExchangeBalancePromises = [];
 
       _.map(addressBatches[loop.iteration()], async (address) => {
         // Get PRED balance
@@ -742,12 +744,90 @@ async function getAddressBalances() {
 
           getFunBalanceResolve();
         });
+
+        //EXCHANGE
+        // Get RUNES balance
+        const getRunesExchangeBalancePromise = new Promise(async (getRunesExchangeBalanceResolve) => {
+          let RunesExchangeBalance = new BigNumber(0);          
+          try {
+            const hex = await getInstance().getHexAddress(address);
+            const resp = await exchange.balanceOf({
+              token: '0000000000000000000000000000000000000000',
+              user: hex,
+              senderAddress: address,
+            });
+            console.log (resp.balance);
+            runesExchangeBalance = resp.balance;
+          } catch (err) {
+            getLogger().error(`BalanceOf ${address}: ${err.message}`);
+            runesExchangeBalance = '0';
+          }
+
+          // Update Runes balance for address
+          const found = _.find(addressObjs, { address });
+          found.exchangerunes = runesExchangeBalance.toString(10);
+          console.log (found.exchangerunes);
+          getRunesExchangeBalanceResolve();
+        });
+
+        // Get PRED balance
+        const getPredExchangeBalancePromise = new Promise(async (getPredExchangeBalanceResolve) => {
+          let predExchangeBalance = new BigNumber(0);          
+          try {
+            const hex = await getInstance().getHexAddress(address);
+            const resp = await exchange.balanceOf({
+              token: contractMetadata.RunebasePredictionToken.address,
+              user: hex,
+              senderAddress: address,
+            });
+
+            predExchangeBalance = resp.balance;
+          } catch (err) {
+            getLogger().error(`BalanceOf ${address}: ${err.message}`);
+            predExchangeBalance = '0';
+          }
+
+          // Update PRED balance for address
+          const found = _.find(addressObjs, { address });
+          found.exchangepred = predExchangeBalance.toString(10);
+
+          getPredExchangeBalanceResolve();
+        });
+
+        //GET FUN BALANCE
+        const getFunExchangeBalancePromise = new Promise(async (getFunExchangeBalanceResolve) => {
+          let funExchangeBalance = new BigNumber(0);
+          try {
+            const hex = await getInstance().getHexAddress(address);
+            const resp = await exchange.balanceOf({
+              token: contractMetadata.FunToken.address,
+              user: hex,
+              senderAddress: address,
+            });
+
+            funExchangeBalance = resp.balance;
+          } catch (err) {
+            getLogger().error(`BalanceOf ${address}: ${err.message}`);
+            funExchangeBalance = '0';
+          }
+          const found = _.find(addressObjs, { address });
+          found.exchangefun = funExchangeBalance.toString(10);
+
+          getFunExchangeBalanceResolve();
+        });
+
         getPredBalancePromises.push(getPredBalancePromise);
         getFunBalancePromises.push(getFunBalancePromise);
+        getRunesExchangeBalancePromises.push(getRunesExchangeBalancePromise);
+        getPredExchangeBalancePromises.push(getPredExchangeBalancePromise);
+        getFunExchangeBalancePromises.push(getFunExchangeBalancePromise);
       });
 
       await Promise.all(getPredBalancePromises);
       await Promise.all(getFunBalancePromises);
+      await Promise.all(getRunesExchangeBalancePromises);
+      await Promise.all(getPredExchangeBalancePromises);
+      await Promise.all(getFunExchangeBalancePromises);
       loop.next();
     }, () => {
       resolve();
@@ -762,6 +842,9 @@ async function getAddressBalances() {
       runebase: '0',
       pred: '0',
       fun: '0',
+      exchangerunes: '0',
+      exchangepred: '0',
+      exchangefun: '0',
     });
   }
 
@@ -781,7 +864,6 @@ async function getExchangeBalances() {
           address: addressArrItem[0],
           runebase: new BigNumber(addressArrItem[1]).multipliedBy(SATOSHI_CONVERSION).toString(10),
         });
-        console.log(addressArrItem[0]);
         addressList.push(addressArrItem[0]);
       });
     });
@@ -807,7 +889,7 @@ async function getExchangeBalances() {
               user: hex,
               senderAddress: address,
             });
-
+            console.log
             runesBalance = resp.balance;
           } catch (err) {
             getLogger().error(`BalanceOf ${address}: ${err.message}`);
@@ -883,7 +965,7 @@ async function getExchangeBalances() {
     const address = await wallet.getAccountAddress({ accountName: '' });
     addressObjs.push({
       address,
-      runebase: '0',
+      runes: '0',
       pred: '0',
       fun: '0',
     });

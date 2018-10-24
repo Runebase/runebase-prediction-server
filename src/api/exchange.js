@@ -31,8 +31,6 @@ const Exchange = {
     });
     res.balance = Utils.hexToDecimalString(res[0]);
     res[0] = Utils.hexToDecimalString(res[0]);
-    console.log(res[0]);
-    console.log(res);
     return res;
   },
 
