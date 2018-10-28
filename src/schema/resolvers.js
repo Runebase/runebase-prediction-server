@@ -17,6 +17,8 @@ const { DBHelper } = require('../db');
 const { txState, phase } = require('../constants');
 const { calculateSyncPercent, getAddressBalances, getExchangeBalances} = require('../sync');
 const Utils = require('../utils');
+const exchange = require('../api/exchange');
+const { getInstance } = require('../qclient');
 
 const DEFAULT_LIMIT_NUM = 50;
 const DEFAULT_SKIP_NUM = 0;
@@ -781,7 +783,181 @@ module.exports = {
 
       return tx;
     },
+    transferExchange: async (root, data, { db: { Transactions } }) => {
+      const {
+        senderAddress,
+        receiverAddress,
+        token,
+        amount,
+      } = data;      
+      let metadata = getContractMetadata();
+      const exchangeAddress = await getInstance().fromHexAddress(metadata.Radex.address);
+      const version = Config.CONTRACT_VERSION_NUM;
+      let txid;
+      let sentTx;
+      switch (token) {
+        case 'RUNES': {
+          // Send sendToAddress tx
+          try {
+            txid = await exchange.fundExchangeRunes({
+              exchangeAddress,
+              amount,
+              senderAddress,
+            });
+          } catch (err) {
+            getLogger().error(`Error calling exchange.fund: ${err.message}`);
+            throw err;
+          }
+          break;
+        }
+        case 'PRED': {
+          // Send transfer tx          
+          try {
+            sentTx = await runebasePredictionToken.transfer({
+              to: exchangeAddress,
+              value: amount,
+              senderAddress,
+            });
+            txid = sentTx.txid;
+          } catch (err) {
+            getLogger().error(`Error calling RunebasePredictionToken.transfer: ${err.message}`);
+            throw err;
+          }
+          break;
+        }
+        case 'FUN': {
+          // Send transfer tx
+          try {
+            sentTx = await funToken.transfer({
+              to: exchangeAddress,
+              value: amount,
+              senderAddress,
+            });
+            txid = sentTx.txid;
+          } catch (err) {
+            getLogger().error(`Error calling FunToken.transfer: ${err.message}`);
+            throw err;
+          }
+          break;
+        }
+        default: {
+          throw new Error(`Invalid token transfer type: ${token}`);
+        }
+      }
+
+      // Insert Transaction
+      const gasLimit = sentTx ? sentTx.args.gasLimit : Config.DEFAULT_GAS_LIMIT;
+      const gasPrice = sentTx ? sentTx.args.gasPrice : Config.DEFAULT_GAS_PRICE;
+      const tx = {
+        txid,
+        type: 'FUNDEXCHANGE',
+        status: txState.PENDING,
+        gasLimit: gasLimit.toString(10),
+        gasPrice: gasPrice.toFixed(8),
+        createdTime: moment().unix(),
+        senderAddress,
+        version,
+        receiverAddress,
+        token,
+        amount,
+      };
+      await DBHelper.insertTransaction(Transactions, tx);
+      return tx;
+    },
+    redeemExchange: async (root, data, { db: { Transactions } }) => {
+      const {
+        senderAddress,
+        receiverAddress,
+        token,
+        amount,
+      } = data;      
+      let metadata = getContractMetadata();
+      const exchangeAddress = await getInstance().fromHexAddress(metadata.Radex.address);
+      const version = Config.CONTRACT_VERSION_NUM;
+      let txid;
+      let sentTx;
+      let tokenaddress;
+
+      switch (token) {
+        case 'RUNES': {
+          // Send sendToAddress tx
+          try {
+            tokenaddress = "0000000000000000000000000000000000000000";
+            txid = await exchange.redeemExchange({
+              exchangeAddress,
+              amount,
+              token,
+              tokenaddress,
+              senderAddress,
+            });
+          } catch (err) {
+            getLogger().error(`Error calling exchange.fund: ${err.message}`);
+            throw err;
+          }
+          break;
+        }
+        case 'PRED': {
+          // Send transfer tx          
+          try {
+            tokenaddress = metadata.RunebasePredictionToken.address;
+            txid = await exchange.redeemExchange({
+              exchangeAddress,
+              amount,
+              token,
+              tokenaddress,
+              senderAddress,
+            });
+          } catch (err) {
+            getLogger().error(`Error calling exchange.fund: ${err.message}`);
+            throw err;
+          }
+          break;
+        }
+        case 'FUN': {
+          // Send transfer tx
+          try {
+            tokenaddress = metadata.FunToken.address;
+            txid = await exchange.redeemExchange({
+              exchangeAddress,
+              amount,
+              token,
+              tokenaddress,
+              senderAddress,
+            });
+          } catch (err) {
+            getLogger().error(`Error calling exchange.fund: ${err.message}`);
+            throw err;
+          }
+          break;
+        }
+        default: {
+          throw new Error(`Invalid token transfer type: ${token}`);
+        }
+      }
+
+      // Insert Transaction
+      const gasLimit = sentTx ? sentTx.args.gasLimit : Config.DEFAULT_GAS_LIMIT;
+      const gasPrice = sentTx ? sentTx.args.gasPrice : Config.DEFAULT_GAS_PRICE;
+      const tx = {
+        txid,
+        type: 'REDEEMEXCHANGE',
+        status: txState.PENDING,
+        gasLimit: gasLimit.toString(10),
+        gasPrice: gasPrice.toFixed(8),
+        createdTime: moment().unix(),
+        senderAddress,
+        version,
+        receiverAddress,
+        token,
+        amount,
+      };
+      console.log(tx);
+      await DBHelper.insertTransaction(Transactions, tx);
+      return tx;
+    },
   },
+
+
 
   Topic: {
     oracles: ({ address }, data, { db: { Oracles } }) => Oracles.find({ topicAddress: address }),

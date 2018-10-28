@@ -155,6 +155,16 @@ const Transaction = {
         });
         break;
       }
+      case 'FUNDEXCHANGE': {
+        costsArr.push({
+          type: 'fundexchange',
+          gasLimit: Config.DEFAULT_GAS_LIMIT,
+          gasCost: DEFAULT_GAS_COST,
+          token,
+          amount,
+        });
+        break;
+      }
       default: {
         throw new Error(`Invalid transactionType: ${transactionType}`);
       }

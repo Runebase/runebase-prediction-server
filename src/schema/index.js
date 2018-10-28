@@ -95,8 +95,7 @@ type syncInfo {
   syncBlockTime: String
   syncPercent: Int
   peerNodeCount: Int
-  addressBalances: [AddressBalance]
-  exchangeBalances: [ExchangeBalance]  
+  addressBalances: [AddressBalance] 
 }
 
 type Query {
@@ -208,6 +207,21 @@ type Mutation {
     token: _TokenType!
     amount: String!
   ): Transaction
+
+  transferExchange(
+    senderAddress: String!
+    receiverAddress: String!
+    token: _TokenType!
+    amount: String!
+  ): Transaction
+
+  redeemExchange(
+    senderAddress: String!
+    receiverAddress: String!
+    token: _TokenType!
+    amount: String!
+  ): Transaction
+  
 }
 
 type Subscription {
@@ -236,12 +250,6 @@ type AddressBalance {
   exchangerunes: String!,
   exchangepred: String!,
   exchangefun: String!,
-}
-type ExchangeBalance {
-  address: String!,
-  runes: String!,
-  pred: String!,
-  fun: String!,
 }
 
 enum _ModelMutationType {
@@ -283,6 +291,8 @@ enum _TransactionType {
   WITHDRAW
   WITHDRAWESCROW
   TRANSFER
+  FUNDEXCHANGE
+  REDEEMEXCHANGE
 }
 
 enum _TransactionStatus {
