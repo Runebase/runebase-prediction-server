@@ -12,6 +12,10 @@ const db = {
   Votes: undefined,
   Blocks: undefined,
   Transactions: undefined,
+  NewOrder: undefined,
+  Trade: undefined,
+  MarketMaker: undefined,
+  OrderFulfilled: undefined,
 };
 
 // Init datastores
@@ -33,6 +37,10 @@ async function initDB() {
   db.Votes = datastore({ filename: `${blockchainDataPath}/votes.db` });
   db.Blocks = datastore({ filename: `${blockchainDataPath}/blocks.db` });
   db.Transactions = datastore({ filename: `${localCacheDataPath}/transactions.db` });
+  db.NewOrder = datastore({ filename: `${localCacheDataPath}/neworder.db` });
+  db.Trade = datastore({ filename: `${localCacheDataPath}/trade.db` });
+  db.MarketMaker = datastore({ filename: `${localCacheDataPath}/marketMaker.db` });
+  db.OrderFulfilled = datastore({ filename: `${localCacheDataPath}/orderfulfilled.db` });
 
   try {
     await Promise.all([
@@ -41,6 +49,10 @@ async function initDB() {
       db.Votes.loadDatabase(),
       db.Blocks.loadDatabase(),
       db.Transactions.loadDatabase(),
+      db.NewOrder.loadDatabase(),
+      db.Trade.loadDatabase(),
+      db.MarketMaker.loadDatabase(),
+      db.OrderFulfilled.loadDatabase(),
     ]);
 
     await db.Topics.ensureIndex({ fieldName: 'txid', unique: true });

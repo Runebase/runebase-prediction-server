@@ -1,0 +1,4 @@
+70a08231: balanceOf(address)
+18160ddd: totalSupply()
+a9059cbb: transfer(address,uint256)
+be45fd62: transfer(address,uint256,bytes)

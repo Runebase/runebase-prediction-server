@@ -4,6 +4,19 @@ const resolvers = require('./resolvers');
 // Define your types here.
 const typeDefs = `
 
+type NewOrder {
+  txid: String!
+  orderId: String!
+  owner: String!
+  sellToken: String!
+  buyToken: String!
+  priceMul: String!
+  priceDiv: String!
+  time: String!
+  amount: String!
+  blockNum: String!
+}
+
 type Topic {
   txid: String!
   version: Int!
@@ -99,12 +112,27 @@ type syncInfo {
 }
 
 type Query {
+  allNewOrders(filter: NewOrderFilter, orderBy: [Order!], limit: Int, skip: Int): [NewOrder]!
   allTopics(filter: TopicFilter, orderBy: [Order!], limit: Int, skip: Int): [Topic]!
   allOracles(filter: OracleFilter, orderBy: [Order!], limit: Int, skip: Int ): [Oracle]!
   searchOracles(searchPhrase: String, orderBy: [Order!], limit: Int, skip: Int): [Oracle]!
   allVotes(filter: VoteFilter, orderBy: [Order!], limit: Int, skip: Int): [Vote]!
   allTransactions(filter: TransactionFilter, orderBy: [Order!], limit: Int, skip: Int): [Transaction]!
   syncInfo(includeBalance: Boolean): syncInfo!
+}
+
+input NewOrderFilter {
+  OR: [NewOrderFilter!]
+  txid: String
+  orderId: String
+  owner: String
+  sellToken: String
+  buyToken: String
+  priceMul: String
+  priceDiv: String
+  time: String
+  amount: String
+  blockNum: String
 }
 
 input TopicFilter {
@@ -221,6 +249,15 @@ type Mutation {
     token: _TokenType!
     amount: String!
   ): Transaction
+
+  orderExchange(
+    senderAddress: String!
+    receiverAddress: String!
+    token: _TokenType!
+    amount: String!
+    price: String!
+    orderType: String!
+  ): Transaction
   
 }
 
@@ -293,6 +330,8 @@ enum _TransactionType {
   TRANSFER
   FUNDEXCHANGE
   REDEEMEXCHANGE
+  BUYORDER
+  SELLORDER
 }
 
 enum _TransactionStatus {

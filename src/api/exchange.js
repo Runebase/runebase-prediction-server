@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const { Contract, Rweb3 } = require('rweb3');
+const math = require('mathjs');
 
 const { getContractMetadata, getRunebaseRPCAddress } = require('../config');
 const Utils = require('../utils');
@@ -101,6 +102,54 @@ const Exchange = {
     return res.txid;
   },
   
+  async orderExchange(args) {
+    const {
+      exchangeAddress, // address
+      amount,
+      token,
+      tokenaddress,
+      senderAddress,
+      price,
+      orderType,    
+    } = args;
+    const fract = math.fraction(price);
+    console.log(fract.n);
+    console.log(fract.d);
+    console.log(orderType);
+    console.log(args);
+    if (_.isUndefined(senderAddress)) {
+      throw new TypeError('senderAddress needs to be defined');
+    }
+    if (_.isUndefined(exchangeAddress)) {
+      throw new TypeError('exchangeAddress needs to be defined');
+    }
+    if (_.isUndefined(amount)) {
+      throw new TypeError('amount needs to be defined');
+    }
+    if (_.isUndefined(orderType)) {
+      throw new TypeError('orderType needs to be defined');
+    }
+    if (_.isUndefined(price)) {
+      throw new TypeError('price needs to be defined');
+    }
+
+    let res;
+    if (orderType == 'buy') {
+      res = await getContract().send('createOrder', {
+        methodArgs: ["0000000000000000000000000000000000000000", tokenaddress, amount, fract.n, fract.d],
+        senderAddress,
+      });
+    }
+    if (orderType == 'sell') {
+      res = await getContract().send('createOrder', {
+        methodArgs: [tokenaddress, "0000000000000000000000000000000000000000", amount, fract.n, fract.d],
+        senderAddress,
+      });
+    }    
+    
+    console.log(res);
+    return res.txid;
+  },
 };
 
 

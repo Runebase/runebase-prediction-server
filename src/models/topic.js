@@ -16,6 +16,7 @@ class Topic {
   }
 
   decode() {
+    console.log(this);
     this.version = this.rawLog._version.toNumber();
     this.topicAddress = this.rawLog._topicAddress;
     this.creatorAddress = this.rawLog._creatorAddress;

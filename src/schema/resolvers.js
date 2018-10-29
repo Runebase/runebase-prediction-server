@@ -193,6 +193,57 @@ function buildTransactionFilters({
   return filters;
 }
 
+function buildNewOrderFilters({
+  OR = [], type, status, topicAddress, oracleAddress, senderAddress, senderQAddress,
+}) {
+  const filter = (txid || orderId || owner || sellToken || buyToken || priceMul || priceDiv || time || amount || blockNum) ? {} : null;
+
+  if (txid) {
+    filter.txid = txid;
+  }
+
+  if (orderId) {
+    filter.orderId = orderId;
+  }
+
+  if (owner) {
+    filter.owner = owner;
+  }
+
+  if (sellToken) {
+    filter.sellToken = sellToken;
+  }
+
+  if (buyToken) {
+    filter.buyToken = buyToken;
+  }
+
+  if (priceMul) {
+    filter.priceMul = priceMul;
+  }
+
+  if (priceDiv) {
+    filter.priceDiv = priceDiv;
+  }
+
+  if (time) {
+    filter.time = time;
+  }
+
+  if (amount) {
+    filter.amount = amount;
+  }
+
+  if (blockNum) {
+    filter.blockNum = blockNum;
+  }
+
+  let filters = filter ? [filter] : [];
+  for (let i = 0; i < OR.length; i++) {
+    filters = filters.concat(buildNewOrderFilters(OR[i]));
+  }
+  return filters;
+}
 /**
  * Takes an oracle object and returns which phase it is in.
  * @param {oracle} oracle
@@ -215,6 +266,15 @@ module.exports = {
     }, { db: { Topics } }) => {
       const query = filter ? { $or: buildTopicFilters(filter) } : {};
       let cursor = Topics.cfind(query);
+      cursor = buildCursorOptions(cursor, orderBy, limit, skip);
+      return cursor.exec();
+    },
+
+    allNewOrders: async (root, {
+      filter, orderBy, limit, skip,
+    }, { db: { NewOrder } }) => {
+      const query = filter ? { $or: buildNewOrderFilters(filter) } : {};
+      let cursor = NewOrder.cfind(query);
       cursor = buildCursorOptions(cursor, orderBy, limit, skip);
       return cursor.exec();
     },
@@ -941,6 +1001,91 @@ module.exports = {
       const tx = {
         txid,
         type: 'REDEEMEXCHANGE',
+        status: txState.PENDING,
+        gasLimit: gasLimit.toString(10),
+        gasPrice: gasPrice.toFixed(8),
+        createdTime: moment().unix(),
+        senderAddress,
+        version,
+        receiverAddress,
+        token,
+        amount,
+      };
+      console.log(tx);
+      await DBHelper.insertTransaction(Transactions, tx);
+      return tx;
+    },
+    orderExchange: async (root, data, { db: { Transactions } }) => {
+      const {
+        senderAddress,
+        receiverAddress,
+        token,
+        amount,
+        price,
+        orderType,
+      } = data;      
+      let metadata = getContractMetadata();
+      const exchangeAddress = await getInstance().fromHexAddress(metadata.Radex.address);
+      const version = Config.CONTRACT_VERSION_NUM;
+      let txid;
+      let sentTx;
+      let tokenaddress;
+      console.log('orderExchange-api')
+      switch (token) {
+        case 'PRED': {
+          // Send transfer tx          
+          try {
+            tokenaddress = metadata.RunebasePredictionToken.address;            
+          } catch (err) {
+            getLogger().error(`Error calling exchange.fund: ${err.message}`);
+            throw err;
+          }
+          break;
+        }
+        case 'FUN': {
+          // Send transfer tx
+          try {
+            tokenaddress = metadata.FunToken.address;
+          } catch (err) {
+            getLogger().error(`Error calling exchange.fund: ${err.message}`);
+            throw err;
+          }
+          break;
+        }
+        default: {
+          throw new Error(`Invalid token transfer type: ${token}`);
+        }
+      }
+      try {
+
+        txid = await exchange.orderExchange({
+          exchangeAddress,
+          amount,
+          token,
+          tokenaddress,
+          senderAddress,
+          price,
+          orderType,
+        });
+
+      } catch (err) {
+        getLogger().error(`Error calling orderExchange: ${err.message}`);
+        throw err;
+      }
+      console.log(orderType);
+      let typeOrder;
+      if (orderType == "buy") {
+        typeOrder = "BUYORDER"
+      }
+      if (orderType == "sell") {
+        typeOrder = "SELLORDER"
+      }
+      // Insert Transaction
+      const gasLimit = sentTx ? sentTx.args.gasLimit : Config.DEFAULT_GAS_LIMIT;
+      const gasPrice = sentTx ? sentTx.args.gasPrice : Config.DEFAULT_GAS_PRICE;
+      const tx = {
+        txid,
+        type: typeOrder,
         status: txState.PENDING,
         gasLimit: gasLimit.toString(10),
         gasPrice: gasPrice.toFixed(8),

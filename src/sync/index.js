@@ -3,6 +3,7 @@
 const _ = require('lodash');
 const pubsub = require('../pubsub');
 const { getLogger } = require('../utils/logger');
+const { Utils } = require('rweb3');
 const moment = require('moment');
 const BigNumber = require('bignumber.js');
 const { getContractMetadata, isMainnet } = require('../config');
@@ -11,6 +12,7 @@ const { db, DBHelper } = require('../db');
 const updateTxDB = require('./updateLocalTx');
 
 const Topic = require('../models/topic');
+const NewOrder = require('../models/newOrder');
 const CentralizedOracle = require('../models/centralizedOracle');
 const DecentralizedOracle = require('../models/decentralizedOracle');
 const Vote = require('../models/vote');
@@ -105,6 +107,9 @@ async function sync(db) {
 
       await syncTopicCreated(db, startBlock, endBlock, removeHexPrefix);
       getLogger().debug('Synced Topics');
+
+      await syncNewOrder(db, startBlock, endBlock, removeHexPrefix);
+      getLogger().debug('Synced NewOrder');
 
       await Promise.all([
         syncCentralizedOracleCreated(db, startBlock, endBlock, removeHexPrefix),
@@ -755,8 +760,7 @@ async function getAddressBalances() {
               token: '0000000000000000000000000000000000000000',
               user: hex,
               senderAddress: address,
-            });
-            console.log (resp.balance);
+            });            
             runesExchangeBalance = resp.balance;
           } catch (err) {
             getLogger().error(`BalanceOf ${address}: ${err.message}`);
@@ -766,7 +770,6 @@ async function getAddressBalances() {
           // Update Runes balance for address
           const found = _.find(addressObjs, { address });
           found.exchangerunes = runesExchangeBalance.toString(10);
-          console.log (found.exchangerunes);
           getRunesExchangeBalanceResolve();
         });
 
@@ -889,7 +892,6 @@ async function getExchangeBalances() {
               user: hex,
               senderAddress: address,
             });
-            console.log
             runesBalance = resp.balance;
           } catch (err) {
             getLogger().error(`BalanceOf ${address}: ${err.message}`);
@@ -972,6 +974,54 @@ async function getExchangeBalances() {
   }
 
   return addressObjs;
+}
+
+async function syncNewOrder(db, startBlock, endBlock, removeHexPrefix) {
+  let result;
+  try {
+    result = await getInstance().searchLogs(
+      startBlock, endBlock, contractMetadata.Radex.address,
+      [contractMetadata.Radex.NewOrder], contractMetadata, removeHexPrefix,
+    );
+    getLogger().debug('searchlog New Order');
+    console.log(result);
+  } catch (err) {
+    getLogger().error(`ERROR: ${err.message}`);
+    return;
+  }
+
+  getLogger().debug(`${startBlock} - ${endBlock}: Retrieved ${result.length} entries from New Order`);
+  const createNewOrderPromises = [];
+
+  _.forEach(result, (event, index) => {
+    const blockNum = event.blockNumber;
+    const txid = event.transactionHash;
+    _.forEachRight(event.log, (rawLog) => {
+      const newOrder = new NewOrder(blockNum, txid, rawLog).translate();
+      
+      if (rawLog._eventName === 'NewOrder') {
+        const insertNewOrderDB = new Promise(async (resolve) => {
+          try {
+            const newOrder = new NewOrder(blockNum, txid, rawLog).translate();
+            if (await DBHelper.getCount(db.NewOrder, { txid }) > 0) {
+              DBHelper.updateTopicByQuery(db.NewOrder, { txid }, newOrder);
+            } else {
+              DBHelper.insertTopic(db.NewOrder, newOrder);
+            }
+
+            resolve();
+          } catch (err) {
+            getLogger().error(`ERROR: ${err.message}`);
+            resolve();
+          }
+        });
+
+        createNewOrderPromises.push(insertNewOrderDB);
+      }
+    });
+  });
+
+  await Promise.all(createNewOrderPromises);
 }
 
 module.exports = {
