@@ -111,6 +111,18 @@ class DBHelper {
   }
 
   /*
+  *removeOrdersByQuery
+  *
+  */
+  static async removeOrdersByQuery(orderDb, query) {
+    try {
+      const numRemoved = await orderDb.remove(query, { multi: true });
+      getLogger().debug(`Remove: ${numRemoved} Orders query:${query}`);
+    } catch (err) {
+      getLogger().error(`Remove Orders by query:${query}: ${err.message}`);
+    }
+  }
+  /*
   * Returns the fields of the object in one of the tables searched by the query.
   * @param db The DB table.
   * @param query {Object} The query by items.

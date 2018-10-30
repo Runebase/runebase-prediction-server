@@ -15,7 +15,7 @@ const decentralizedOracle = require('../api/decentralized_oracle');
 const { Config, getContractMetadata } = require('../config');
 const { DBHelper } = require('../db');
 const { txState, phase } = require('../constants');
-const { calculateSyncPercent, getAddressBalances, getExchangeBalances} = require('../sync');
+const { calculateSyncPercent, getAddressBalances, getExchangeBalances } = require('../sync');
 const Utils = require('../utils');
 const exchange = require('../api/exchange');
 const { getInstance } = require('../qclient');
@@ -194,7 +194,7 @@ function buildTransactionFilters({
 }
 
 function buildNewOrderFilters({
-  OR = [], type, status, topicAddress, oracleAddress, senderAddress, senderQAddress,
+  OR = [], txid, orderId, owner, sellToken, buyToken, priceMul, priceDiv, time, amount, blockNum
 }) {
   const filter = (txid || orderId || owner || sellToken || buyToken || priceMul || priceDiv || time || amount || blockNum) ? {} : null;
 
@@ -1030,7 +1030,6 @@ module.exports = {
       let txid;
       let sentTx;
       let tokenaddress;
-      console.log('orderExchange-api')
       switch (token) {
         case 'PRED': {
           // Send transfer tx          
@@ -1095,6 +1094,46 @@ module.exports = {
         receiverAddress,
         token,
         amount,
+      };
+      console.log(tx);
+      await DBHelper.insertTransaction(Transactions, tx);
+      return tx;
+    },
+    cancelOrderExchange: async (root, data, { db: { Transactions } }) => {
+      const {
+        senderAddress,
+        orderId,
+      } = data;
+      let sentTx;      
+      let metadata = getContractMetadata();
+      const exchangeAddress = await getInstance().fromHexAddress(metadata.Radex.address);
+      const version = Config.CONTRACT_VERSION_NUM;
+      let txid;
+      try {
+        txid = await exchange.cancelOrderExchange({
+          exchangeAddress,
+          senderAddress,
+          orderId,
+        });
+
+      } catch (err) {
+        getLogger().error(`Error calling orderExchange: ${err.message}`);
+        throw err;
+      }
+
+      // Insert Transaction
+      const gasLimit = sentTx ? sentTx.args.gasLimit : Config.DEFAULT_GAS_LIMIT;
+      const gasPrice = sentTx ? sentTx.args.gasPrice : Config.DEFAULT_GAS_PRICE;
+      const tx = {
+        txid,
+        type: 'CANCELORDER',
+        status: txState.PENDING,
+        gasLimit: gasLimit.toString(10),
+        gasPrice: gasPrice.toFixed(8),
+        createdTime: moment().unix(),
+        senderAddress,
+        receiverAddress: exchangeAddress,
+        version,
       };
       console.log(tx);
       await DBHelper.insertTransaction(Transactions, tx);

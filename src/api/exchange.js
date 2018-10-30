@@ -150,6 +150,30 @@ const Exchange = {
     console.log(res);
     return res.txid;
   },
+  async cancelOrderExchange(args) {
+    const {
+      exchangeAddress, // address
+      senderAddress,
+      orderId,   
+    } = args;
+    if (_.isUndefined(exchangeAddress)) {
+      throw new TypeError('exchangeAddress needs to be defined');
+    }
+    if (_.isUndefined(senderAddress)) {
+      throw new TypeError('senderAddress needs to be defined');
+    }
+    if (_.isUndefined(orderId)) {
+      throw new TypeError('orderId needs to be defined');
+    }
+
+    res = await getContract().send('cancelOrder', {
+      methodArgs: [orderId],
+      senderAddress,
+    });
+        
+    console.log(res);
+    return res.txid;
+  },
 };
 
 

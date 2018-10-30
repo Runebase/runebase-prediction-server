@@ -13,6 +13,7 @@ const updateTxDB = require('./updateLocalTx');
 
 const Topic = require('../models/topic');
 const NewOrder = require('../models/newOrder');
+const CancelOrder = require('../models/cancelOrder');
 const CentralizedOracle = require('../models/centralizedOracle');
 const DecentralizedOracle = require('../models/decentralizedOracle');
 const Vote = require('../models/vote');
@@ -110,6 +111,9 @@ async function sync(db) {
 
       await syncNewOrder(db, startBlock, endBlock, removeHexPrefix);
       getLogger().debug('Synced NewOrder');
+
+      await syncOrderCancelled(db, startBlock, endBlock, removeHexPrefix);
+      getLogger().debug('Synced syncOrderCancelled');
 
       await Promise.all([
         syncCentralizedOracleCreated(db, startBlock, endBlock, removeHexPrefix),
@@ -1022,6 +1026,48 @@ async function syncNewOrder(db, startBlock, endBlock, removeHexPrefix) {
   });
 
   await Promise.all(createNewOrderPromises);
+}
+async function syncOrderCancelled(db, startBlock, endBlock, removeHexPrefix) {
+  let result;
+  try {
+    result = await getInstance().searchLogs(
+      startBlock, endBlock, contractMetadata.Radex.address,
+      [contractMetadata.Radex.OrderCancelled], contractMetadata, removeHexPrefix,
+    );
+    getLogger().debug('searchlog OrderCancelled');
+    console.log(result);
+  } catch (err) {
+    getLogger().error(`ERROR: ${err.message}`);
+    return;
+  }
+
+  getLogger().debug(`${startBlock} - ${endBlock}: Retrieved ${result.length} entries from OrderCancelled`);
+  const createCancelOrderPromises = [];
+
+  _.forEach(result, (event, index) => {
+    const blockNum = event.blockNumber;
+    const txid = event.transactionHash;
+    _.forEachRight(event.log, (rawLog) => {
+      console.log(rawLog)
+      if (rawLog._eventName === 'OrderCancelled') {
+        const removeNewOrderDB = new Promise(async (resolve) => {
+          try {
+            const cancelOrder = new CancelOrder(blockNum, txid, rawLog).translate();
+            console.log(cancelOrder.orderId);
+            await DBHelper.removeOrdersByQuery(db.NewOrder, { orderId: cancelOrder.orderId });
+            resolve();
+          } catch (err) {
+            getLogger().error(`ERROR: ${err.message}`);
+            resolve();
+          }
+        });
+
+        createCancelOrderPromises.push(removeNewOrderDB);
+      }
+    });
+  });
+
+  await Promise.all(createCancelOrderPromises);
 }
 
 module.exports = {

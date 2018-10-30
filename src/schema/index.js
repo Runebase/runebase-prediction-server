@@ -258,6 +258,11 @@ type Mutation {
     price: String!
     orderType: String!
   ): Transaction
+
+  cancelOrderExchange(
+    senderAddress: String!
+    orderId: String!
+  ): Transaction
   
 }
 
@@ -332,6 +337,7 @@ enum _TransactionType {
   REDEEMEXCHANGE
   BUYORDER
   SELLORDER
+  CANCELORDER
 }
 
 enum _TransactionStatus {
