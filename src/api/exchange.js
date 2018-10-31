@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const { Contract, Rweb3 } = require('rweb3');
-const math = require('mathjs');
 
 const { getContractMetadata, getRunebaseRPCAddress } = require('../config');
 const Utils = require('../utils');
@@ -76,7 +75,6 @@ const Exchange = {
       tokenaddress,
       senderAddress,    
     } = args;
-    console.log(args);
     if (_.isUndefined(senderAddress)) {
       throw new TypeError('senderAddress needs to be defined');
     }
@@ -98,7 +96,6 @@ const Exchange = {
       methodArgs: [tokenaddress, calculatedAmount],
       senderAddress,
     });
-    console.log(res);
     return res.txid;
   },
   
@@ -109,14 +106,10 @@ const Exchange = {
       token,
       tokenaddress,
       senderAddress,
-      price,
+      priceFractN,
+      priceFractD,
       orderType,    
-    } = args;
-    const fract = math.fraction(price);
-    console.log(fract.n);
-    console.log(fract.d);
-    console.log(orderType);
-    console.log(args);
+    } = args;    
     if (_.isUndefined(senderAddress)) {
       throw new TypeError('senderAddress needs to be defined');
     }
@@ -129,25 +122,26 @@ const Exchange = {
     if (_.isUndefined(orderType)) {
       throw new TypeError('orderType needs to be defined');
     }
-    if (_.isUndefined(price)) {
-      throw new TypeError('price needs to be defined');
+    if (_.isUndefined(priceFractN)) {
+      throw new TypeError('priceFractN needs to be defined');
+    }
+    if (_.isUndefined(priceFractD)) {
+      throw new TypeError('priceFractD needs to be defined');
     }
 
     let res;
     if (orderType == 'buy') {
       res = await getContract().send('createOrder', {
-        methodArgs: ["0000000000000000000000000000000000000000", tokenaddress, amount, fract.n, fract.d],
+        methodArgs: ["0000000000000000000000000000000000000000", tokenaddress, amount, priceFractN, priceFractD],
         senderAddress,
       });
     }
     if (orderType == 'sell') {
       res = await getContract().send('createOrder', {
-        methodArgs: [tokenaddress, "0000000000000000000000000000000000000000", amount, fract.n, fract.d],
+        methodArgs: [tokenaddress, "0000000000000000000000000000000000000000", amount, priceFractN, priceFractD],
         senderAddress,
       });
     }    
-    
-    console.log(res);
     return res.txid;
   },
   async cancelOrderExchange(args) {
@@ -171,7 +165,6 @@ const Exchange = {
       senderAddress,
     });
         
-    console.log(res);
     return res.txid;
   },
 };

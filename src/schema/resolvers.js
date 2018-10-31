@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const moment = require('moment');
+const math = require('mathjs');
 
 const pubsub = require('../pubsub');
 const { getLogger } = require('../utils/logger');
@@ -13,7 +14,7 @@ const topicEvent = require('../api/topic_event');
 const centralizedOracle = require('../api/centralized_oracle');
 const decentralizedOracle = require('../api/decentralized_oracle');
 const { Config, getContractMetadata } = require('../config');
-const { DBHelper } = require('../db');
+const { db, DBHelper } = require('../db');
 const { txState, phase } = require('../constants');
 const { calculateSyncPercent, getAddressBalances, getExchangeBalances } = require('../sync');
 const Utils = require('../utils');
@@ -194,12 +195,24 @@ function buildTransactionFilters({
 }
 
 function buildNewOrderFilters({
-  OR = [], txid, orderId, owner, sellToken, buyToken, priceMul, priceDiv, time, amount, blockNum
+  OR = [], txid, token, type, price, orderId, owner, sellToken, buyToken, priceMul, priceDiv, time, amount, blockNum
 }) {
-  const filter = (txid || orderId || owner || sellToken || buyToken || priceMul || priceDiv || time || amount || blockNum) ? {} : null;
+  const filter = (txid || token || type || price || price || orderId || owner || sellToken || buyToken || priceMul || priceDiv || time || amount || blockNum) ? {} : null;
 
   if (txid) {
     filter.txid = txid;
+  }
+
+  if (token) {
+    filter.token = token;
+  }
+
+  if (type) {
+    filter.type = type;
+  }
+
+  if (price) {
+    filter.price = price;
   }
 
   if (orderId) {
@@ -951,7 +964,7 @@ module.exports = {
               senderAddress,
             });
           } catch (err) {
-            getLogger().error(`Error calling exchange.fund: ${err.message}`);
+            getLogger().error(`Error calling redeemExchange: ${err.message}`);
             throw err;
           }
           break;
@@ -968,7 +981,7 @@ module.exports = {
               senderAddress,
             });
           } catch (err) {
-            getLogger().error(`Error calling exchange.fund: ${err.message}`);
+            getLogger().error(`Error calling redeemExchange: ${err.message}`);
             throw err;
           }
           break;
@@ -985,7 +998,7 @@ module.exports = {
               senderAddress,
             });
           } catch (err) {
-            getLogger().error(`Error calling exchange.fund: ${err.message}`);
+            getLogger().error(`Error calling redeemExchange: ${err.message}`);
             throw err;
           }
           break;
@@ -1030,13 +1043,16 @@ module.exports = {
       let txid;
       let sentTx;
       let tokenaddress;
+      const priceFract = math.fraction(price);
+      const priceFractN = priceFract.n;
+      const priceFractD = priceFract.d;
       switch (token) {
         case 'PRED': {
           // Send transfer tx          
           try {
             tokenaddress = metadata.RunebasePredictionToken.address;            
           } catch (err) {
-            getLogger().error(`Error calling exchange.fund: ${err.message}`);
+            getLogger().error(`Error calling metadata.RunebasePredictionToken.address: ${err.message}`);
             throw err;
           }
           break;
@@ -1046,7 +1062,7 @@ module.exports = {
           try {
             tokenaddress = metadata.FunToken.address;
           } catch (err) {
-            getLogger().error(`Error calling exchange.fund: ${err.message}`);
+            getLogger().error(`Error calling metadata.FunToken.address: ${err.message}`);
             throw err;
           }
           break;
@@ -1056,28 +1072,30 @@ module.exports = {
         }
       }
       try {
-
         txid = await exchange.orderExchange({
           exchangeAddress,
           amount,
           token,
           tokenaddress,
           senderAddress,
-          price,
+          priceFractN,
+          priceFractD,
           orderType,
         });
-
       } catch (err) {
         getLogger().error(`Error calling orderExchange: ${err.message}`);
         throw err;
       }
-      console.log(orderType);
       let typeOrder;
-      if (orderType == "buy") {
-        typeOrder = "BUYORDER"
+      if (orderType == 'buy') {
+        typeOrder = 'BUYORDER';
+        sellToken = '0000000000000000000000000000000000000000';
+        buyToken = tokenaddress;
       }
-      if (orderType == "sell") {
-        typeOrder = "SELLORDER"
+      if (orderType == 'sell') {
+        typeOrder = 'SELLORDER'
+        sellToken = tokenaddress;
+        buyToken = '0000000000000000000000000000000000000000';
       }
       // Insert Transaction
       const gasLimit = sentTx ? sentTx.args.gasLimit : Config.DEFAULT_GAS_LIMIT;
@@ -1089,13 +1107,22 @@ module.exports = {
         gasLimit: gasLimit.toString(10),
         gasPrice: gasPrice.toFixed(8),
         createdTime: moment().unix(),
+        time: moment().unix(),
         senderAddress,
+        owner: senderAddress,
         version,
         receiverAddress,
         token,
-        amount,
+        price,
+        amount,    
+        orderId: '?',
+        sellToken,
+        buyToken,
+        priceMul: priceFractN,
+        priceDiv: priceFractD,
       };
       console.log(tx);
+      await DBHelper.insertTopic(db.NewOrder, tx);
       await DBHelper.insertTransaction(Transactions, tx);
       return tx;
     },
@@ -1124,18 +1151,23 @@ module.exports = {
       // Insert Transaction
       const gasLimit = sentTx ? sentTx.args.gasLimit : Config.DEFAULT_GAS_LIMIT;
       const gasPrice = sentTx ? sentTx.args.gasPrice : Config.DEFAULT_GAS_PRICE;
+      const NewOrder = {
+        status: 'CANCELED',
+        orderId: orderId,
+        type: 'CANCELORDER',
+      }
       const tx = {
         txid,
         type: 'CANCELORDER',
-        status: txState.PENDING,
+        version,
+        status: 'PENDING',
         gasLimit: gasLimit.toString(10),
         gasPrice: gasPrice.toFixed(8),
         createdTime: moment().unix(),
         senderAddress,
         receiverAddress: exchangeAddress,
-        version,
       };
-      console.log(tx);
+      await DBHelper.cancelOrderByQuery(db.NewOrder, { orderId }, NewOrder);
       await DBHelper.insertTransaction(Transactions, tx);
       return tx;
     },

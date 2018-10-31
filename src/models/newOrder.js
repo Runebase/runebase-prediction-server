@@ -2,7 +2,9 @@
 
 const _ = require('lodash');
 const { Decoder, Utils } = require('rweb3');
-const { isMainnet } = require('../config');
+const math = require('mathjs')
+const { isMainnet, getContractMetadata } = require('../config');
+const { txState } = require('../constants');
 
 class NewOrder {
   constructor(blockNum, txid, rawLog) {
@@ -15,12 +17,29 @@ class NewOrder {
   }
 
   decode() {
-    console.log(this.rawLog);
+    const metadata = getContractMetadata();
+    for (var key in metadata){
+      if (metadata[key].address === this.rawLog._sellToken || metadata[key].address === this.rawLog._buyToken) {
+        if (key !== 'Runebase') {
+          this.token = metadata[key].pair; 
+        }        
+      }     
+    }
+    if (this.rawLog._sellToken === metadata.Runebase.address) {
+      this.type = 'BUYORDER';
+    }
+    else{
+      this.type = 'SELLORDER';
+    }
+    this.priceMul = this.rawLog._priceMul.toString(10);
+    this.priceDiv = this.rawLog._priceDiv.toString(10);
+    const fract = this.priceMul + '/' + this.priceDiv;
+    const g = math.fraction(fract);
+    const c = math.number(g);
+    this.price = c;
     this.orderId = this.rawLog._id.toString(10);
     this.sellToken = this.rawLog._sellToken;
     this.buyToken = this.rawLog._buyToken;
-    this.priceMul = this.rawLog._priceMul.toString(10);
-    this.priceDiv = this.rawLog._priceDiv.toString(10);
     this.amount = this.rawLog._amount.toString(10);
     this.owner = this.rawLog._owner;
     this.time = this.rawLog._time.toString(10);   
@@ -28,8 +47,11 @@ class NewOrder {
 
   translate() {
     return {
-      status: 'NEWORDER',
       txid: this.txid,
+      type: this.type,
+      token: this.token,
+      price: this.price,
+      status: txState.SUCCESS,      
       orderId: this.orderId,
       owner: Decoder.toRunebaseAddress(this.owner, isMainnet()),
       sellToken: this.sellToken,

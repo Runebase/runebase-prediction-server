@@ -21,7 +21,7 @@ class CancelOrder {
 
   translate() {
     return {
-      status: 'CANCELORDER',
+      status: 'CONFIRMED',
       orderId: this.orderId,
       time: this.time,
     };

@@ -7,6 +7,10 @@ const typeDefs = `
 type NewOrder {
   txid: String!
   orderId: String!
+  token: String!
+  type: String!
+  price: String!
+  status: String!
   owner: String!
   sellToken: String!
   buyToken: String!
@@ -14,7 +18,7 @@ type NewOrder {
   priceDiv: String!
   time: String!
   amount: String!
-  blockNum: String!
+  blockNum: Int
 }
 
 type Topic {
@@ -124,6 +128,10 @@ type Query {
 input NewOrderFilter {
   OR: [NewOrderFilter!]
   txid: String
+  token: String
+  type: String
+  status: String
+  price: String
   orderId: String
   owner: String
   sellToken: String
@@ -132,7 +140,7 @@ input NewOrderFilter {
   priceDiv: String
   time: String
   amount: String
-  blockNum: String
+  blockNum: Int
 }
 
 input TopicFilter {

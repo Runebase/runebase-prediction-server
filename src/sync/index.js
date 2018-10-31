@@ -29,7 +29,7 @@ const exchange = require('../api/exchange');
 const { getInstance } = require('../qclient');
 
 const RPC_BATCH_SIZE = 5;
-const BLOCK_BATCH_SIZE = 100;
+const BLOCK_BATCH_SIZE = 200;
 const SYNC_THRESHOLD_SECS = 1200;
 
 // hardcode sender address as it doesnt matter
@@ -988,7 +988,6 @@ async function syncNewOrder(db, startBlock, endBlock, removeHexPrefix) {
       [contractMetadata.Radex.NewOrder], contractMetadata, removeHexPrefix,
     );
     getLogger().debug('searchlog New Order');
-    console.log(result);
   } catch (err) {
     getLogger().error(`ERROR: ${err.message}`);
     return;
@@ -1001,32 +1000,28 @@ async function syncNewOrder(db, startBlock, endBlock, removeHexPrefix) {
     const blockNum = event.blockNumber;
     const txid = event.transactionHash;
     _.forEachRight(event.log, (rawLog) => {
-      const newOrder = new NewOrder(blockNum, txid, rawLog).translate();
-      
       if (rawLog._eventName === 'NewOrder') {
         const insertNewOrderDB = new Promise(async (resolve) => {
           try {
             const newOrder = new NewOrder(blockNum, txid, rawLog).translate();
             if (await DBHelper.getCount(db.NewOrder, { txid }) > 0) {
-              DBHelper.updateTopicByQuery(db.NewOrder, { txid }, newOrder);
+              DBHelper.updateOrderByQuery(db.NewOrder, { txid }, newOrder);
             } else {
               DBHelper.insertTopic(db.NewOrder, newOrder);
             }
-
             resolve();
           } catch (err) {
             getLogger().error(`ERROR: ${err.message}`);
             resolve();
           }
         });
-
         createNewOrderPromises.push(insertNewOrderDB);
       }
     });
   });
-
   await Promise.all(createNewOrderPromises);
 }
+
 async function syncOrderCancelled(db, startBlock, endBlock, removeHexPrefix) {
   let result;
   try {
@@ -1048,12 +1043,10 @@ async function syncOrderCancelled(db, startBlock, endBlock, removeHexPrefix) {
     const blockNum = event.blockNumber;
     const txid = event.transactionHash;
     _.forEachRight(event.log, (rawLog) => {
-      console.log(rawLog)
       if (rawLog._eventName === 'OrderCancelled') {
         const removeNewOrderDB = new Promise(async (resolve) => {
           try {
             const cancelOrder = new CancelOrder(blockNum, txid, rawLog).translate();
-            console.log(cancelOrder.orderId);
             await DBHelper.removeOrdersByQuery(db.NewOrder, { orderId: cancelOrder.orderId });
             resolve();
           } catch (err) {
@@ -1061,7 +1054,6 @@ async function syncOrderCancelled(db, startBlock, endBlock, removeHexPrefix) {
             resolve();
           }
         });
-
         createCancelOrderPromises.push(removeNewOrderDB);
       }
     });

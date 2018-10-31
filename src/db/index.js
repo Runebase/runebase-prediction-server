@@ -123,6 +123,70 @@ class DBHelper {
     }
   }
   /*
+  * Update Order
+  *
+  */
+  static async updateOrderByQuery(db, query, topic) {
+    try {
+      await db.update(
+        query,
+        {
+          $set: {
+            txid: topic.txid,
+            orderId: topic.orderId,
+            blockNum: topic.blockNum,
+            token: topic.token,
+            price: topic.price,
+            type: topic.type,
+            status: topic.status,
+            resultIdx: topic.resultIdx,
+            creatorAddress: topic.creatorAddress,     
+            owner: topic.owner,
+            sellToken: topic.sellToken,
+            buyToken: topic.buyToken,
+            priceMul: topic.priceMul,
+            priceDiv: topic.priceDiv,
+            time: topic.time,
+            amount: topic.amount,
+          },
+        },
+        {},
+      );
+    } catch (err) {
+      getLogger().error(`Error update Topic by query:${query}: ${err.message}`);
+    }
+  }
+
+  static async cancelOrderByQuery(db, query, topic) {
+    try {
+      await db.update(
+        query,
+        {
+          $set: {
+            orderId: topic.orderId,
+            status: topic.status,            
+          },
+        },
+        {},
+      );
+    } catch (err) {
+      getLogger().error(`Error update Topic by query:${query}: ${err.message}`);
+    }
+  }
+
+  /*
+  *Insert Order
+  *
+  */
+  static async insertTopic(db, topic) {
+    try {
+      await db.insert(topic);
+    } catch (err) {
+      getLogger().error(`Error insert Topic ${topic}: ${err.message}`);
+    }
+  }
+
+  /*
   * Returns the fields of the object in one of the tables searched by the query.
   * @param db The DB table.
   * @param query {Object} The query by items.
