@@ -167,6 +167,35 @@ const Exchange = {
         
     return res.txid;
   },
+
+  async executeOrderExchange(args) {
+    const {
+      exchangeAddress, // address
+      senderAddress,
+      orderId,
+      exchangeAmount   
+    } = args;
+    if (_.isUndefined(exchangeAddress)) {
+      throw new TypeError('exchangeAddress needs to be defined');
+    }
+    if (_.isUndefined(senderAddress)) {
+      throw new TypeError('senderAddress needs to be defined');
+    }
+    if (_.isUndefined(orderId)) {
+      throw new TypeError('orderId needs to be defined');
+    }
+    if (_.isUndefined(exchangeAmount)) {
+      throw new TypeError('exchangeAmount needs to be defined');
+    }
+    res = await getContract().send('executeOrder', {
+      methodArgs: [orderId, exchangeAmount],
+      senderAddress,
+    });
+    console.log("execute order");
+    console.log(res);    
+    return res.txid;
+  },
+
 };
 
 

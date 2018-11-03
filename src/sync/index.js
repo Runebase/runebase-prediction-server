@@ -14,6 +14,9 @@ const updateTxDB = require('./updateLocalTx');
 const Topic = require('../models/topic');
 const NewOrder = require('../models/newOrder');
 const CancelOrder = require('../models/cancelOrder');
+const Trade = require('../models/trade');
+const MarketMaker = require('../models/marketMaker');
+const OrderFulfilled = require('../models/orderFulfilled');
 const CentralizedOracle = require('../models/centralizedOracle');
 const DecentralizedOracle = require('../models/decentralizedOracle');
 const Vote = require('../models/vote');
@@ -112,8 +115,17 @@ async function sync(db) {
       await syncNewOrder(db, startBlock, endBlock, removeHexPrefix);
       getLogger().debug('Synced NewOrder');
 
+      await syncTrade(db, startBlock, endBlock, removeHexPrefix);
+      getLogger().debug('Synced syncTrade');
+
+      await syncMarketMaker(db, startBlock, endBlock, removeHexPrefix);
+      getLogger().debug('Synced syncMarketMaker');
+
+      await syncOrderFulfilled(db, startBlock, endBlock, removeHexPrefix);
+      getLogger().debug('Synced syncOrderFulfilled');
+
       await syncOrderCancelled(db, startBlock, endBlock, removeHexPrefix);
-      getLogger().debug('Synced syncOrderCancelled');
+      getLogger().debug('Synced syncOrderCancelled'); 
 
       await Promise.all([
         syncCentralizedOracleCreated(db, startBlock, endBlock, removeHexPrefix),
@@ -1060,6 +1072,141 @@ async function syncOrderCancelled(db, startBlock, endBlock, removeHexPrefix) {
   });
 
   await Promise.all(createCancelOrderPromises);
+}
+
+async function syncOrderFulfilled(db, startBlock, endBlock, removeHexPrefix) {
+  let result;
+  try {
+    result = await getInstance().searchLogs(
+      startBlock, endBlock, contractMetadata.Radex.address,
+      [contractMetadata.Radex.OrderFulfilled], contractMetadata, removeHexPrefix,
+    );
+    getLogger().debug('searchlog OrderCancelled');
+    console.log(result);
+  } catch (err) {
+    getLogger().error(`ERROR: ${err.message}`);
+    return;
+  }
+
+  getLogger().debug(`${startBlock} - ${endBlock}: Retrieved ${result.length} entries from OrderCancelled`);
+  const createCancelOrderPromises = [];
+
+  _.forEach(result, (event, index) => {
+    const blockNum = event.blockNumber;
+    const txid = event.transactionHash;
+    _.forEachRight(event.log, (rawLog) => {
+      if (rawLog._eventName === 'OrderFulfilled') {
+        console.log("rawLog OrderFulfilled");
+        console.log(rawLog);
+        const removeNewOrderDB = new Promise(async (resolve) => {
+          try {
+            const cancelOrder = new CancelOrder(blockNum, txid, rawLog).translate();
+            await DBHelper.removeOrdersByQuery(db.NewOrder, { orderId: cancelOrder.orderId });
+            resolve();
+          } catch (err) {
+            getLogger().error(`ERROR: ${err.message}`);
+            resolve();
+          }
+        });
+        createCancelOrderPromises.push(removeNewOrderDB);
+      }
+    });
+  });
+
+  await Promise.all(createCancelOrderPromises);
+}
+
+async function syncTrade(db, startBlock, endBlock, removeHexPrefix) {
+  let result;
+  try {
+    result = await getInstance().searchLogs(
+      startBlock, endBlock, contractMetadata.Radex.address,
+      [contractMetadata.Radex.Trade], contractMetadata, removeHexPrefix,
+    );
+    getLogger().debug('searchlog syncTrade');
+    console.log(result);
+  } catch (err) {
+    getLogger().error(`ERROR: ${err.message}`);
+    return;
+  }
+
+  getLogger().debug(`${startBlock} - ${endBlock}: Retrieved ${result.length} entries from syncTrade`);
+  const createTradePromises = [];
+
+  _.forEach(result, (event, index) => {
+    const blockNum = event.blockNumber;
+    const txid = event.transactionHash;
+    _.forEachRight(event.log, (rawLog) => {
+      if (rawLog._eventName === 'Trade') {
+        const tradeOrderDB = new Promise(async (resolve) => {
+          try {
+            const getOrder = await DBHelper.findOne(db.NewOrder, { orderId: rawLog._orderId.toString(10) });
+            const trade = new Trade(blockNum, txid, rawLog, getOrder).translate();
+            const orderId = trade.orderId
+            const newAmount = Number(getOrder.amount) - Number(trade.soldTokens);
+            const updateOrder = {
+              orderId: trade.orderId,
+              amount: newAmount,
+            }
+            
+            await DBHelper.updateOrderByQuery(db.NewOrder, { orderId }, updateOrder);
+            await DBHelper.insertTopic(db.Trade, trade);
+            getLogger().debug('Trade Inserted');
+            resolve();
+          } catch (err) {
+            getLogger().error(`ERROR: ${err.message}`);
+            resolve();
+          }
+        });
+        createTradePromises.push(tradeOrderDB);
+      }
+    });
+  });
+
+  await Promise.all(createTradePromises);
+}
+
+async function syncMarketMaker(db, startBlock, endBlock, removeHexPrefix) {
+  let result;
+  try {
+    result = await getInstance().searchLogs(
+      startBlock, endBlock, contractMetadata.Radex.address,
+      [contractMetadata.Radex.Trade], contractMetadata, removeHexPrefix,
+    );
+    getLogger().debug('searchlog syncMarketMaker');
+    console.log(result);
+  } catch (err) {
+    getLogger().error(`ERROR: ${err.message}`);
+    return;
+  }
+
+  getLogger().debug(`${startBlock} - ${endBlock}: Retrieved ${result.length} entries from syncMarketMaker`);
+  const createMarketMakerPromises = [];
+
+  _.forEach(result, (event, index) => {
+    const blockNum = event.blockNumber;
+    const txid = event.transactionHash;
+    _.forEachRight(event.log, (rawLog) => {
+      if (rawLog._eventName === 'MarketMaker') {
+        console.log('rawLog marketmaker');
+        console.log(rawLog);
+        const removeNewOrderDB = new Promise(async (resolve) => {
+          try {
+            const marketMaker = new MarketMaker(blockNum, txid, rawLog).translate();
+            console.log(marketMaker);
+            //await DBHelper.removeOrdersByQuery(db.NewOrder, { orderId: cancelOrder.orderId });
+            resolve();
+          } catch (err) {
+            getLogger().error(`ERROR: ${err.message}`);
+            resolve();
+          }
+        });
+        createMarketMakerPromises.push(removeNewOrderDB);
+      }
+    });
+  });
+
+  await Promise.all(createMarketMakerPromises);
 }
 
 module.exports = {

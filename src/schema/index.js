@@ -8,6 +8,8 @@ type NewOrder {
   txid: String!
   orderId: String!
   token: String!
+  tokenName: String!
+  orderType: String!
   type: String!
   price: String!
   status: String!
@@ -16,6 +18,22 @@ type NewOrder {
   buyToken: String!
   priceMul: String!
   priceDiv: String!
+  time: String!
+  amount: String!
+  blockNum: Int
+}
+
+
+type Trade {
+  date: String!  
+  from: String!
+  to: String!
+  soldTokens: String!
+  boughtTokens: String!  
+  tokenName: String!
+  orderType: String!
+  price: String!
+  orderId: String!
   time: String!
   amount: String!
   blockNum: Int
@@ -116,6 +134,7 @@ type syncInfo {
 }
 
 type Query {
+  allTrades(filter: TradeFilter, orderBy: [Order!], limit: Int, skip: Int): [Trade]!
   allNewOrders(filter: NewOrderFilter, orderBy: [Order!], limit: Int, skip: Int): [NewOrder]!
   allTopics(filter: TopicFilter, orderBy: [Order!], limit: Int, skip: Int): [Topic]!
   allOracles(filter: OracleFilter, orderBy: [Order!], limit: Int, skip: Int ): [Oracle]!
@@ -125,10 +144,27 @@ type Query {
   syncInfo(includeBalance: Boolean): syncInfo!
 }
 
+input TradeFilter {
+  OR: [TradeFilter!]
+  from: String
+  to: String
+  soldTokens: String
+  boughtTokens: String
+  tokenName: String
+  orderType: String
+  price: String
+  orderId: String
+  time: String
+  amount: String
+  blockNum: Int
+}
+
 input NewOrderFilter {
   OR: [NewOrderFilter!]
   txid: String
   token: String
+  tokenName: String
+  orderType: String
   type: String
   status: String
   price: String
@@ -271,6 +307,12 @@ type Mutation {
     senderAddress: String!
     orderId: String!
   ): Transaction
+
+  executeOrderExchange(
+    senderAddress: String!
+    orderId: String!
+    exchangeAmount: String!
+  ): Transaction
   
 }
 
@@ -346,6 +388,7 @@ enum _TransactionType {
   BUYORDER
   SELLORDER
   CANCELORDER
+  EXECUTEORDER
 }
 
 enum _TransactionStatus {

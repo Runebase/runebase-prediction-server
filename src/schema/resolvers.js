@@ -195,13 +195,24 @@ function buildTransactionFilters({
 }
 
 function buildNewOrderFilters({
-  OR = [], txid, token, type, price, orderId, owner, sellToken, buyToken, priceMul, priceDiv, time, amount, blockNum
+  OR = [], txid, tokenName, orderType, status, token, type, price, orderId, owner, sellToken, buyToken, priceMul, priceDiv, time, amount, blockNum
 }) {
-  const filter = (txid || token || type || price || price || orderId || owner || sellToken || buyToken || priceMul || priceDiv || time || amount || blockNum) ? {} : null;
-
+  const filter = (txid || tokenName || orderType || status || token || type || price || orderId || owner || sellToken || buyToken || priceMul || priceDiv || time || amount || blockNum) ? {} : null;
   if (txid) {
     filter.txid = txid;
   }
+
+  if (tokenName) {
+    filter.tokenName = tokenName;
+  }
+
+  if (orderType) {
+    filter.orderType = orderType;
+  }
+
+  if (status) {
+    filter.status = status;
+  }  
 
   if (token) {
     filter.token = token;
@@ -249,14 +260,74 @@ function buildNewOrderFilters({
 
   if (blockNum) {
     filter.blockNum = blockNum;
-  }
-
+  }  
   let filters = filter ? [filter] : [];
   for (let i = 0; i < OR.length; i++) {
     filters = filters.concat(buildNewOrderFilters(OR[i]));
   }
   return filters;
 }
+
+
+function buildTradeFilters({
+  OR = [], date, from, to, soldTokens, boughtTokens, tokenName, orderType, price, orderId, time, amount, blockNum
+}) {
+  const filter = (date || from || to || soldTokens || boughtTokens || tokenName || orderType || price || orderId  || time || amount || blockNum) ? {} : null;
+
+  if (date) {
+    filter.date = date;
+  }
+
+  if (from) {
+    filter.from = from;
+  }
+
+  if (to) {
+    filter.to = to;
+  }
+
+  if (soldTokens) {
+    filter.soldTokens = soldTokens;
+  }
+
+  if (boughtTokens) {
+    filter.boughtTokens = boughtTokens;
+  }
+
+  if (tokenName) {
+    filter.tokenName = tokenName;
+  }
+
+  if (orderType) {
+    filter.orderType = orderType;
+  }
+
+  if (price) {
+    filter.price = price;
+  }
+
+  if (orderId) {
+    filter.orderId = orderId;
+  }
+
+  if (time) {
+    filter.time = time;
+  }
+
+  if (amount) {
+    filter.amount = amount;
+  }
+
+  if (blockNum) {
+    filter.blockNum = blockNum;
+  }  
+  let filters = filter ? [filter] : [];
+  for (let i = 0; i < OR.length; i++) {
+    filters = filters.concat(buildNewOrderFilters(OR[i]));
+  }
+  return filters;
+}
+
 /**
  * Takes an oracle object and returns which phase it is in.
  * @param {oracle} oracle
@@ -288,6 +359,15 @@ module.exports = {
     }, { db: { NewOrder } }) => {
       const query = filter ? { $or: buildNewOrderFilters(filter) } : {};
       let cursor = NewOrder.cfind(query);
+      cursor = buildCursorOptions(cursor, orderBy, limit, skip);
+      return cursor.exec();
+    },
+
+    allTrades: async (root, {
+      filter, orderBy, limit, skip,
+    }, { db: { Trade } }) => {
+      const query = filter ? { $or: buildTradeFilters(filter) } : {};
+      let cursor = Trade.cfind(query);
       cursor = buildCursorOptions(cursor, orderBy, limit, skip);
       return cursor.exec();
     },
@@ -1024,7 +1104,6 @@ module.exports = {
         token,
         amount,
       };
-      console.log(tx);
       await DBHelper.insertTransaction(Transactions, tx);
       return tx;
     },
@@ -1103,6 +1182,8 @@ module.exports = {
       const tx = {
         txid,
         type: typeOrder,
+        orderType: typeOrder,
+        tokenName: token,
         status: txState.PENDING,
         gasLimit: gasLimit.toString(10),
         gasPrice: gasPrice.toFixed(8),
@@ -1121,7 +1202,6 @@ module.exports = {
         priceMul: priceFractN,
         priceDiv: priceFractD,
       };
-      console.log(tx);
       await DBHelper.insertTopic(db.NewOrder, tx);
       await DBHelper.insertTransaction(Transactions, tx);
       return tx;
@@ -1168,6 +1248,48 @@ module.exports = {
         receiverAddress: exchangeAddress,
       };
       await DBHelper.cancelOrderByQuery(db.NewOrder, { orderId }, NewOrder);
+      await DBHelper.insertTransaction(Transactions, tx);
+      return tx;
+    },
+    executeOrderExchange: async (root, data, { db: { Transactions } }) => {
+      const {
+        senderAddress,
+        orderId,
+        exchangeAmount,
+      } = data;
+      let sentTx;     
+      let metadata = getContractMetadata();
+      const exchangeAddress = await getInstance().fromHexAddress(metadata.Radex.address);
+      const version = Config.CONTRACT_VERSION_NUM;
+      let txid;
+      try {
+        txid = await exchange.executeOrderExchange({
+          exchangeAddress,
+          senderAddress,
+          orderId,
+          exchangeAmount,
+        });
+
+      } catch (err) {
+        getLogger().error(`Error calling executeExchange: ${err.message}`);
+        throw err;
+      }
+      // Insert Transaction
+      const gasLimit = sentTx ? sentTx.args.gasLimit : Config.DEFAULT_GAS_LIMIT;
+      const gasPrice = sentTx ? sentTx.args.gasPrice : Config.DEFAULT_GAS_PRICE;
+      const tx = {
+        txid,
+        type: 'EXECUTEORDER',
+        version,
+        exchangeAmount,
+        status: 'PENDING',
+        gasLimit: gasLimit.toString(10),
+        gasPrice: gasPrice.toFixed(8),
+        createdTime: moment().unix(),
+        senderAddress,
+        receiverAddress: exchangeAddress,
+      };
+      //await DBHelper.cancelOrderByQuery(db.NewOrder, { orderId }, NewOrder);
       await DBHelper.insertTransaction(Transactions, tx);
       return tx;
     },

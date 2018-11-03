@@ -110,6 +110,7 @@ class DBHelper {
     }
   }
 
+
   /*
   *removeOrdersByQuery
   *

@@ -21,15 +21,18 @@ class NewOrder {
     for (var key in metadata){
       if (metadata[key].address === this.rawLog._sellToken || metadata[key].address === this.rawLog._buyToken) {
         if (key !== 'Runebase') {
-          this.token = metadata[key].pair; 
+          this.token = metadata[key].pair;
+          this.tokenName = metadata[key].pair;
         }        
       }     
     }
     if (this.rawLog._sellToken === metadata.Runebase.address) {
       this.type = 'BUYORDER';
+      this.orderType = 'BUYORDER';
     }
     else{
       this.type = 'SELLORDER';
+      this.orderType = 'SELLORDER';
     }
     this.priceMul = this.rawLog._priceMul.toString(10);
     this.priceDiv = this.rawLog._priceDiv.toString(10);
@@ -50,6 +53,8 @@ class NewOrder {
       txid: this.txid,
       type: this.type,
       token: this.token,
+      tokenName: this.tokenName,
+      orderType: this.orderType,
       price: this.price,
       status: txState.SUCCESS,      
       orderId: this.orderId,
