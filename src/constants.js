@@ -20,6 +20,14 @@ module.exports = {
     FAIL: 'FAIL',
   },
 
+  orderState: {
+    PENDING: 'PENDING',
+    FAIL: 'FAIL',
+    ACTIVE: 'ACTIVE',
+    FULFILLED: 'FULFILLED',
+    CANCELD: 'CANCELD',
+  },
+
   execFile: {
     RUNEBASED: 'runebased',
     RUNEBASE_QT: 'runebase-qt',

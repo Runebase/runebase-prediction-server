@@ -18,7 +18,7 @@ class Trade {
   decode() {
     this.date = new Date(this.rawLog._time.toString(10)*1000);  
     this.orderId = this.rawLog._orderId.toString(10);
-    this.time = this.rawLog._time.toString(10);
+    this.time = Number(this.rawLog._time.toString(10));
     this.from = this.rawLog._from;
     this.to = this.rawLog._to; 
     this.soldTokens = this.rawLog._soldTokens.toString(10);   
@@ -26,14 +26,12 @@ class Trade {
     this.price = this.getOrder.price;
     this.orderType = this.getOrder.orderType;
     this.tokenName = this.getOrder.tokenName;
-    console.log("decode!");
     if (this.orderType === "SELLORDER") {
       this.amount = this.soldTokens;              
     }
     if (this.orderType === "BUYORDER") {
       this.amount = this.boughtTokens;  
     }
-    console.log("decode!!");
   }
 
   translate() {

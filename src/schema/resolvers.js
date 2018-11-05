@@ -15,7 +15,7 @@ const centralizedOracle = require('../api/centralized_oracle');
 const decentralizedOracle = require('../api/decentralized_oracle');
 const { Config, getContractMetadata } = require('../config');
 const { db, DBHelper } = require('../db');
-const { txState, phase } = require('../constants');
+const { txState, phase, orderState } = require('../constants');
 const { calculateSyncPercent, getAddressBalances, getExchangeBalances } = require('../sync');
 const Utils = require('../utils');
 const exchange = require('../api/exchange');
@@ -267,7 +267,37 @@ function buildNewOrderFilters({
   }
   return filters;
 }
+function buildMarketFilters({
+  OR = [], market, tokenName, price, change, volume
+}) {
+  const filter = (market || tokenName || price || change || volume) ? {} : null;
 
+  if (market) {
+    filter.market = market;
+  }
+
+  if (tokenName) {
+    filter.tokenName = tokenName;
+  }
+
+  if (price) {
+    filter.price = price;
+  }
+
+  if (change) {
+    filter.change = change;
+  }
+
+  if (volume) {
+    filter.volume = volume;
+  }
+ 
+  let filters = filter ? [filter] : [];
+  for (let i = 0; i < OR.length; i++) {
+    filters = filters.concat(buildMarketFilters(OR[i]));
+  }
+  return filters;
+}
 
 function buildTradeFilters({
   OR = [], date, from, to, soldTokens, boughtTokens, tokenName, orderType, price, orderId, time, amount, blockNum
@@ -372,6 +402,15 @@ module.exports = {
       return cursor.exec();
     },
 
+    allMarkets: async (root, {
+      filter, orderBy, limit, skip,
+    }, { db: { Markets } }) => {
+      const query = filter ? { $or: buildMarketFilters(filter) } : {};
+      let cursor = Markets.cfind(query);
+      cursor = buildCursorOptions(cursor, orderBy, limit, skip);
+      return cursor.exec();
+    },
+
     allOracles: async (root, {
       filter, orderBy, limit, skip,
     }, { db: { Oracles } }) => {
@@ -430,10 +469,8 @@ module.exports = {
       }
       const syncPercent = await calculateSyncPercent(syncBlockNum, syncBlockTime);
       let addressBalances = [];
-      let exchangeBalances = [];
       if (includeBalance || false) {
         addressBalances = await getAddressBalances();
-        exchangeBalances = await getExchangeBalances();
       }
       const peerNodeCount = await network.getPeerNodeCount();
 
@@ -443,7 +480,6 @@ module.exports = {
         syncPercent,
         peerNodeCount,
         addressBalances,
-        exchangeBalances,
       };
     },
   },
@@ -1184,7 +1220,7 @@ module.exports = {
         type: typeOrder,
         orderType: typeOrder,
         tokenName: token,
-        status: txState.PENDING,
+        status: orderState.PENDING,
         gasLimit: gasLimit.toString(10),
         gasPrice: gasPrice.toFixed(8),
         createdTime: moment().unix(),

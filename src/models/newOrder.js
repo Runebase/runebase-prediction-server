@@ -4,7 +4,7 @@ const _ = require('lodash');
 const { Decoder, Utils } = require('rweb3');
 const math = require('mathjs')
 const { isMainnet, getContractMetadata } = require('../config');
-const { txState } = require('../constants');
+const { orderState } = require('../constants');
 
 class NewOrder {
   constructor(blockNum, txid, rawLog) {
@@ -56,7 +56,7 @@ class NewOrder {
       tokenName: this.tokenName,
       orderType: this.orderType,
       price: this.price,
-      status: txState.SUCCESS,      
+      status: orderState.ACTIVE,      
       orderId: this.orderId,
       owner: Decoder.toRunebaseAddress(this.owner, isMainnet()),
       sellToken: this.sellToken,

@@ -5,6 +5,8 @@ const fs = require('fs-extra');
 const Utils = require('../utils');
 const { getLogger } = require('../utils/logger');
 const migrateTxDB = require('./migrations/migrateTx');
+const Market = require('../models/market');
+const { getContractMetadata } = require('../config');
 
 const db = {
   Topics: undefined,
@@ -16,7 +18,9 @@ const db = {
   Trade: undefined,
   MarketMaker: undefined,
   OrderFulfilled: undefined,
+  Markets: undefined,
 };
+
 
 // Init datastores
 async function initDB() {
@@ -41,6 +45,7 @@ async function initDB() {
   db.Trade = datastore({ filename: `${localCacheDataPath}/trade.db` });
   db.MarketMaker = datastore({ filename: `${localCacheDataPath}/marketMaker.db` });
   db.OrderFulfilled = datastore({ filename: `${localCacheDataPath}/orderfulfilled.db` });
+  db.Markets = datastore({ filename: `${localCacheDataPath}/markets.db` });
 
   try {
     await Promise.all([
@@ -53,11 +58,30 @@ async function initDB() {
       db.Trade.loadDatabase(),
       db.MarketMaker.loadDatabase(),
       db.OrderFulfilled.loadDatabase(),
+      db.Markets.loadDatabase(),
     ]);
 
     await db.Topics.ensureIndex({ fieldName: 'txid', unique: true });
     await db.Oracles.ensureIndex({ fieldName: 'txid', unique: true });
     await db.Votes.ensureIndex({ fieldName: 'txid', unique: true });
+
+
+    const metadata = getContractMetadata();
+
+    for (var key in metadata){
+      if (metadata[key].pair) {              
+        if (key !== 'Runebase') { 
+          const addMarket = metadata[key].pair;
+          db.Markets.count({ market: addMarket }, function (err, count) {
+            if (count === 0) {
+              const market = new Market(addMarket).translate();
+              db.Markets.insert(market);
+            }
+          });
+        }        
+      }     
+    }
+
   } catch (err) {
     throw Error(`DB load Error: ${err.message}`);
   }
@@ -124,6 +148,29 @@ class DBHelper {
     }
   }
   /*
+  * Update Markets
+  *
+  */
+  static async updateMarketsByQuery(db, query, topic) {
+    try {
+      await db.update(
+        query,
+        {
+          $set: {
+            tokenName: topic.tokenName,
+            change: topic.change,
+            volume: topic.volume,
+            price: topic.price,
+            market: topic.market,
+          },
+        },
+        {},
+      );
+    } catch (err) {
+      getLogger().error(`Error update Topic by query:${query}: ${err.message}`);
+    }
+  }
+  /*
   * Update Order
   *
   */
@@ -175,17 +222,7 @@ class DBHelper {
     }
   }
 
-  /*
-  *Insert Order
-  *
-  */
-  static async insertTopic(db, topic) {
-    try {
-      await db.insert(topic);
-    } catch (err) {
-      getLogger().error(`Error insert Topic ${topic}: ${err.message}`);
-    }
-  }
+
 
   /*
   * Returns the fields of the object in one of the tables searched by the query.
@@ -201,6 +238,27 @@ class DBHelper {
     }
 
     const found = await db.findOne(query, fieldsObj);
+    if (!found) {
+      const { filename } = db.nedb;
+      throw Error(`Could not findOne ${filename.substr(filename.lastIndexOf('/') + 1)} by query ${JSON.stringify(query)}`);
+    }
+    return found;
+  }
+
+    /*
+  * Returns the fields of the object in one of the tables searched by the query.
+  * @param db The DB table.
+  * @param query {Object} The query by items.
+  * @param fields {Array} The fields to return for the found item in an array.
+  */
+  static async find(db, query, fields) {
+    let fieldsObj;
+    if (!_.isEmpty(fields)) {
+      fieldsObj = {};
+      _.each(fields, field => fieldsObj[field] = 1);
+    }
+
+    const found = await db.find(query, fieldsObj);
     if (!found) {
       const { filename } = db.nedb;
       throw Error(`Could not findOne ${filename.substr(filename.lastIndexOf('/') + 1)} by query ${JSON.stringify(query)}`);

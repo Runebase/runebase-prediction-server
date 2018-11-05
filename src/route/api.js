@@ -18,6 +18,7 @@ const { getInstance } = require('../qclient');
 
 const apiRouter = new Router();
 
+
 function onRequestSuccess(res, result, next) {
   res.send(200, { result });
   next();
@@ -27,6 +28,7 @@ function onRequestError(res, err, next) {
   res.send(500, { error: err.message });
   next();
 }
+
 
 /* Misc */
 apiRouter.post('/is-connected', (req, res, next) => {

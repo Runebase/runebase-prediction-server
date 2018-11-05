@@ -23,6 +23,13 @@ type NewOrder {
   blockNum: Int
 }
 
+type Market {
+  market: String!
+  tokenName: String!
+  price: String!
+  change: String!
+  volume: String!
+}
 
 type Trade {
   date: String!  
@@ -34,7 +41,7 @@ type Trade {
   orderType: String!
   price: String!
   orderId: String!
-  time: String!
+  time: Int
   amount: String!
   blockNum: Int
 }
@@ -133,7 +140,28 @@ type syncInfo {
   addressBalances: [AddressBalance] 
 }
 
+type chartInfo {
+  chartInfo: [Trade] 
+}
+
+type myOrderInfo {
+  myOrderInfo: [NewOrder] 
+}
+
+type buyOrderInfo {
+  buyOrderInfo: [NewOrder] 
+}
+
+type sellOrderInfo {
+  sellOrderInfo: [NewOrder] 
+}
+
+type marketInfo {
+  marketInfo: [Market] 
+}
+
 type Query {
+  allMarkets(filter: MarketFilter, orderBy: [Order!], limit: Int, skip: Int): [Market]!
   allTrades(filter: TradeFilter, orderBy: [Order!], limit: Int, skip: Int): [Trade]!
   allNewOrders(filter: NewOrderFilter, orderBy: [Order!], limit: Int, skip: Int): [NewOrder]!
   allTopics(filter: TopicFilter, orderBy: [Order!], limit: Int, skip: Int): [Topic]!
@@ -142,6 +170,11 @@ type Query {
   allVotes(filter: VoteFilter, orderBy: [Order!], limit: Int, skip: Int): [Vote]!
   allTransactions(filter: TransactionFilter, orderBy: [Order!], limit: Int, skip: Int): [Transaction]!
   syncInfo(includeBalance: Boolean): syncInfo!
+  chartInfo: chartInfo!
+  myOrderInfo: myOrderInfo!
+  sellOrderInfo: sellOrderInfo!
+  buyOrderInfo: buyOrderInfo!
+  marketInfo: marketInfo!
 }
 
 input TradeFilter {
@@ -154,7 +187,7 @@ input TradeFilter {
   orderType: String
   price: String
   orderId: String
-  time: String
+  time: Int
   amount: String
   blockNum: Int
 }
@@ -177,6 +210,15 @@ input NewOrderFilter {
   time: String
   amount: String
   blockNum: Int
+}
+
+input MarketFilter {
+  OR: [MarketFilter!]
+  market: String
+  tokenName: String
+  price: String
+  change: String
+  volume: String
 }
 
 input TopicFilter {
@@ -318,6 +360,11 @@ type Mutation {
 
 type Subscription {
   onSyncInfo : syncInfo
+  onChartInfo : chartInfo
+  onMyOrderInfo : myOrderInfo
+  onSellOrderInfo : sellOrderInfo
+  onBuyOrderInfo : buyOrderInfo
+  onMarketInfo : marketInfo
 }
 
 input topicSubscriptionFilter {

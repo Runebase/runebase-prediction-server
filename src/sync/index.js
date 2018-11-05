@@ -28,8 +28,8 @@ const baseContract = require('../api/base_contract');
 const wallet = require('../api/wallet');
 const network = require('../api/network');
 const exchange = require('../api/exchange');
-
 const { getInstance } = require('../qclient');
+const { txState, orderState } = require('../constants');
 
 const RPC_BATCH_SIZE = 5;
 const BLOCK_BATCH_SIZE = 200;
@@ -127,6 +127,9 @@ async function sync(db) {
       await syncOrderCancelled(db, startBlock, endBlock, removeHexPrefix);
       getLogger().debug('Synced syncOrderCancelled'); 
 
+      await syncMarkets(db, startBlock, endBlock, removeHexPrefix);
+      getLogger().debug('Synced markets'); 
+
       await Promise.all([
         syncCentralizedOracleCreated(db, startBlock, endBlock, removeHexPrefix),
         syncDecentralizedOracleCreated(db, startBlock, endBlock, removeHexPrefix, currentBlockTime),
@@ -188,7 +191,6 @@ async function sync(db) {
             await calculateSyncPercent(currentBlockCount, currentBlockTime),
             await network.getPeerNodeCount(),
             await getAddressBalances(),
-            await getExchangeBalances(),
           );
         }
 
@@ -870,127 +872,6 @@ async function getAddressBalances() {
   return addressObjs;
 }
 
-async function getExchangeBalances() {
-  const addressObjs = [];
-  const addressList = [];
-  try {
-    const res = await getInstance().listAddressGroupings();
-    // grouping: [["qNh8krU54KBemhzX4zWG9h3WGpuCNYmeBd", 0.01], ["qNh8krU54KBemhzX4zWG9h3WGpuCNYmeBd", 0.02]], [...]
-    _.each(res, (grouping) => {
-      // addressArrItem: ["qNh8krU54KBemhzX4zWG9h3WGpuCNYmeBd", 0.08164600]
-      _.each(grouping, (addressArrItem) => {
-        addressObjs.push({
-          address: addressArrItem[0],
-          runebase: new BigNumber(addressArrItem[1]).multipliedBy(SATOSHI_CONVERSION).toString(10),
-        });
-        addressList.push(addressArrItem[0]);
-      });
-    });
-  } catch (err) {
-    getLogger().error(`listAddressGroupings: ${err.message}`);
-  }
-
-  const addressBatches = _.chunk(addressList, RPC_BATCH_SIZE);
-  await new Promise(async (resolve) => {
-    sequentialLoop(addressBatches.length, async (loop) => {
-      const getRunesBalancePromises = [];
-      const getPredBalancePromises = [];
-      const getFunBalancePromises = [];
-
-      _.map(addressBatches[loop.iteration()], async (address) => {
-        // Get RUNES balance
-        const getRunesBalancePromise = new Promise(async (getRunesBalanceResolve) => {
-          let RunesBalance = new BigNumber(0);          
-          try {
-            const hex = await getInstance().getHexAddress(address);
-            const resp = await exchange.balanceOf({
-              token: '0000000000000000000000000000000000000000',
-              user: hex,
-              senderAddress: address,
-            });
-            runesBalance = resp.balance;
-          } catch (err) {
-            getLogger().error(`BalanceOf ${address}: ${err.message}`);
-            runesBalance = '0';
-          }
-
-          // Update Runes balance for address
-          const found = _.find(addressObjs, { address });
-          found.runes = runesBalance.toString(10);
-
-          getRunesBalanceResolve();
-        });
-        // Get PRED balance
-        const getPredBalancePromise = new Promise(async (getPredBalanceResolve) => {
-          let predBalance = new BigNumber(0);          
-          try {
-            const hex = await getInstance().getHexAddress(address);
-            const resp = await exchange.balanceOf({
-              token: contractMetadata.RunebasePredictionToken.address,
-              user: hex,
-              senderAddress: address,
-            });
-
-            predBalance = resp.balance;
-          } catch (err) {
-            getLogger().error(`BalanceOf ${address}: ${err.message}`);
-            predBalance = '0';
-          }
-
-          // Update PRED balance for address
-          const found = _.find(addressObjs, { address });
-          found.pred = predBalance.toString(10);
-
-          getPredBalanceResolve();
-        });
-        //GET FUN BALANCE
-        const getFunBalancePromise = new Promise(async (getFunBalanceResolve) => {
-          let funBalance = new BigNumber(0);
-          try {
-            const hex = await getInstance().getHexAddress(address);
-            const resp = await exchange.balanceOf({
-              token: contractMetadata.FunToken.address,
-              user: hex,
-              senderAddress: address,
-            });
-
-            funBalance = resp.balance;
-          } catch (err) {
-            getLogger().error(`BalanceOf ${address}: ${err.message}`);
-            funBalance = '0';
-          }
-          const found = _.find(addressObjs, { address });
-          found.fun = funBalance.toString(10);
-
-          getFunBalanceResolve();
-        });
-        getRunesBalancePromises.push(getRunesBalancePromise);
-        getPredBalancePromises.push(getPredBalancePromise);
-        getFunBalancePromises.push(getFunBalancePromise);
-      });
-
-      await Promise.all(getRunesBalancePromises);
-      await Promise.all(getPredBalancePromises);
-      await Promise.all(getFunBalancePromises);
-      loop.next();
-    }, () => {
-      resolve();
-    });
-  });
-
-  // Add default address with zero balances if no address was used before
-  if (_.isEmpty(addressObjs)) {
-    const address = await wallet.getAccountAddress({ accountName: '' });
-    addressObjs.push({
-      address,
-      runes: '0',
-      pred: '0',
-      fun: '0',
-    });
-  }
-
-  return addressObjs;
-}
 
 async function syncNewOrder(db, startBlock, endBlock, removeHexPrefix) {
   let result;
@@ -1042,7 +923,6 @@ async function syncOrderCancelled(db, startBlock, endBlock, removeHexPrefix) {
       [contractMetadata.Radex.OrderCancelled], contractMetadata, removeHexPrefix,
     );
     getLogger().debug('searchlog OrderCancelled');
-    console.log(result);
   } catch (err) {
     getLogger().error(`ERROR: ${err.message}`);
     return;
@@ -1082,7 +962,6 @@ async function syncOrderFulfilled(db, startBlock, endBlock, removeHexPrefix) {
       [contractMetadata.Radex.OrderFulfilled], contractMetadata, removeHexPrefix,
     );
     getLogger().debug('searchlog OrderCancelled');
-    console.log(result);
   } catch (err) {
     getLogger().error(`ERROR: ${err.message}`);
     return;
@@ -1096,8 +975,7 @@ async function syncOrderFulfilled(db, startBlock, endBlock, removeHexPrefix) {
     const txid = event.transactionHash;
     _.forEachRight(event.log, (rawLog) => {
       if (rawLog._eventName === 'OrderFulfilled') {
-        console.log("rawLog OrderFulfilled");
-        console.log(rawLog);
+        /* Change with update DB later instead of removing it from the records */
         const removeNewOrderDB = new Promise(async (resolve) => {
           try {
             const cancelOrder = new CancelOrder(blockNum, txid, rawLog).translate();
@@ -1124,7 +1002,6 @@ async function syncTrade(db, startBlock, endBlock, removeHexPrefix) {
       [contractMetadata.Radex.Trade], contractMetadata, removeHexPrefix,
     );
     getLogger().debug('searchlog syncTrade');
-    console.log(result);
   } catch (err) {
     getLogger().error(`ERROR: ${err.message}`);
     return;
@@ -1166,6 +1043,109 @@ async function syncTrade(db, startBlock, endBlock, removeHexPrefix) {
   await Promise.all(createTradePromises);
 }
 
+function dynamicSort(property) {
+    var sortOrder = 1;
+    if(property[0] === "-") {
+        sortOrder = -1;
+        property = property.substr(1);
+    }
+    return function (a,b) {
+        if(sortOrder == -1){
+            return b[property].toString().localeCompare(a[property]);
+        }else{
+            return a[property].toString().localeCompare(b[property]);
+        }        
+    }
+}
+
+function getPercentageChange(oldNumber, newNumber){
+    var decreaseValue = oldNumber - newNumber;
+
+    return (decreaseValue / oldNumber) * 100;
+}
+
+async function syncMarkets(db, startBlock, endBlock, removeHexPrefix) {
+  const createMarketPromises = [];
+  const marketDB = new Promise(async (resolve) => {
+    try {
+      const metadata = getContractMetadata();
+      let change = 0;
+      let volume = 0;
+      let filled = 0;
+      let minSellPrice = 0;
+      for (var key in metadata){
+        if (metadata[key].pair) {
+          if (key !== 'Runebase') {
+            const unixTime = Date.now();
+            var inputDate = unixTime - 84600000; // 24 hours
+            const pair = metadata[key].pair;
+            const trades = await DBHelper.find(
+                    db.Trade, 
+                      {
+                        $and: [ 
+                        { 'date': { $gt: new Date(inputDate) } }, 
+                        { tokenName: metadata[key].pair },
+                        ]
+                      },
+                    ['time', 'tokenName', 'date', 'price', 'amount', 'orderType', 'boughtTokens', 'soldTokens'],
+                  );
+            const sortedTrades = trades.sort((a, b) => a.time - b.time);
+            const first = _.first(sortedTrades);
+            const last = _.last(sortedTrades);
+            if (first !== undefined && last !== undefined) {
+              change = getPercentageChange(last.price, first.price);                          
+            } else{
+              change = 0;  
+            }
+            for (trade in sortedTrades) {
+              if (sortedTrades[trade].orderType === 'SELLORDER') {
+                filled = sortedTrades[trade].boughtTokens / 1e8;
+                volume = volume + filled;      
+              }
+              if (sortedTrades[trade].orderType === 'BUYORDER') {
+                filled = sortedTrades[trade].soldTokens / 1e8;
+                volume = volume + filled;
+              }
+            }
+            const orders = await DBHelper.find(
+                    db.NewOrder, 
+                      {
+                        $and: [
+                        { tokenName: metadata[key].pair },
+                        { status: orderState.ACTIVE },
+                        { orderType: 'SELLORDER' },
+                        ]
+                      },
+                    ['status', 'tokenName', 'price',],
+                  );
+            if (orders !== undefined) {
+              minSellPrice = Math.min.apply(Math, orders.map(function(order) { return order.price; }))
+            }            
+            const obj = {
+              market: metadata[key].pair,
+              change: change.toFixed(2),
+              volume,
+              tokenName: metadata[key].tokenName,
+              price: minSellPrice,
+            }
+            await DBHelper.updateMarketsByQuery(db.Markets, { market: obj.market }, obj);
+          }        
+        }   
+      };
+      //await DBHelper.updateMarketsByQuery(db.Markets, { market: obj.market }, obj);
+      //await DBHelper.updateOrderByQuery(db.NewOrder, { orderId }, updateOrder);
+      getLogger().debug('Markets Synced');
+      resolve();
+
+    } catch (err) {
+      getLogger().error(`ERROR: ${err.message}`);
+      resolve();
+    }
+  });
+  createMarketPromises.push(marketDB);
+  await Promise.all(createMarketPromises);
+}
+
 async function syncMarketMaker(db, startBlock, endBlock, removeHexPrefix) {
   let result;
   try {
@@ -1174,7 +1154,6 @@ async function syncMarketMaker(db, startBlock, endBlock, removeHexPrefix) {
       [contractMetadata.Radex.Trade], contractMetadata, removeHexPrefix,
     );
     getLogger().debug('searchlog syncMarketMaker');
-    console.log(result);
   } catch (err) {
     getLogger().error(`ERROR: ${err.message}`);
     return;
@@ -1188,8 +1167,6 @@ async function syncMarketMaker(db, startBlock, endBlock, removeHexPrefix) {
     const txid = event.transactionHash;
     _.forEachRight(event.log, (rawLog) => {
       if (rawLog._eventName === 'MarketMaker') {
-        console.log('rawLog marketmaker');
-        console.log(rawLog);
         const removeNewOrderDB = new Promise(async (resolve) => {
           try {
             const marketMaker = new MarketMaker(blockNum, txid, rawLog).translate();
@@ -1213,5 +1190,4 @@ module.exports = {
   startSync,
   calculateSyncPercent,
   getAddressBalances,
-  getExchangeBalances,
 };

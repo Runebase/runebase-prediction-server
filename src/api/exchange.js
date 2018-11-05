@@ -48,7 +48,6 @@ const Exchange = {
       amount,
       senderAddress,    
     } = args;
-    console.log(args);
     if (_.isUndefined(senderAddress)) {
       throw new TypeError('senderAddress needs to be defined');
     }
@@ -190,9 +189,7 @@ const Exchange = {
     res = await getContract().send('executeOrder', {
       methodArgs: [orderId, exchangeAmount],
       senderAddress,
-    });
-    console.log("execute order");
-    console.log(res);    
+    });   
     return res.txid;
   },
 
