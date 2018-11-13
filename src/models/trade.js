@@ -19,8 +19,8 @@ class Trade {
     this.date = new Date(this.rawLog._time.toString(10)*1000);  
     this.orderId = this.rawLog._orderId.toString(10);
     this.time = Number(this.rawLog._time.toString(10));
-    this.from = this.rawLog._from;
-    this.to = this.rawLog._to; 
+    this.from = this.rawLog._from.toString();
+    this.to = this.rawLog._to.toString(); 
     this.soldTokens = this.rawLog._soldTokens.toString(10);   
     this.boughtTokens = this.rawLog._boughtTokens.toString(10);  
     this.price = this.getOrder.price;

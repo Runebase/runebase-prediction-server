@@ -43,6 +43,7 @@ class NewOrder {
     this.orderId = this.rawLog._id.toString(10);
     this.sellToken = this.rawLog._sellToken;
     this.buyToken = this.rawLog._buyToken;
+    this.startAmount = this.rawLog._amount.toString(10);
     this.amount = this.rawLog._amount.toString(10);
     this.owner = this.rawLog._owner;
     this.time = this.rawLog._time.toString(10);   
@@ -65,6 +66,7 @@ class NewOrder {
       priceDiv: this.priceDiv,
       time: this.time,
       amount: this.amount,
+      startAmount: this.startAmount,
       blockNum: this.blockNum,
     };
   }

@@ -6,13 +6,17 @@ const typeDefs = `
 
 type NewOrder {
   txid: String!
+  txCanceled: String!
+  txFulfilled: String!
+  timeCanceled: String!
+  timeFulfilled: String!
   orderId: String!
   token: String!
   tokenName: String!
   orderType: String!
   type: String!
   price: String!
-  status: String!
+  status: _OrderStatusType!
   owner: String!
   sellToken: String!
   buyToken: String!
@@ -20,6 +24,7 @@ type NewOrder {
   priceDiv: String!
   time: String!
   amount: String!
+  startAmount: String!
   blockNum: Int
 }
 
@@ -29,12 +34,15 @@ type Market {
   price: String!
   change: String!
   volume: String!
+  orderCount: String!
 }
 
 type Trade {
+  status: String!
+  txid: String!
   date: String!  
   from: String!
-  to: String!
+  to: String!  
   soldTokens: String!
   boughtTokens: String!  
   tokenName: String!
@@ -148,12 +156,32 @@ type myOrderInfo {
   myOrderInfo: [NewOrder] 
 }
 
+type activeOrderInfo {
+  activeOrderInfo: [NewOrder] 
+}
+
+type fulfilledOrderInfo {
+  fulfilledOrderInfo: [NewOrder] 
+}
+
+type canceledOrderInfo {
+  canceledOrderInfo: [NewOrder] 
+}
+
 type buyOrderInfo {
   buyOrderInfo: [NewOrder] 
 }
 
 type sellOrderInfo {
   sellOrderInfo: [NewOrder] 
+}
+
+type myTradeInfo {
+  myTradeInfo: [Trade] 
+}
+
+type selectedOrderInfo {
+  selectedOrderInfo: [NewOrder] 
 }
 
 type marketInfo {
@@ -172,15 +200,22 @@ type Query {
   syncInfo(includeBalance: Boolean): syncInfo!
   chartInfo: chartInfo!
   myOrderInfo: myOrderInfo!
+  activeOrderInfo: activeOrderInfo!
+  fulfilledOrderInfo: fulfilledOrderInfo!
+  canceledOrderInfo: canceledOrderInfo!
   sellOrderInfo: sellOrderInfo!
+  myTradeInfo: myTradeInfo!
   buyOrderInfo: buyOrderInfo!
+  selectedOrderInfo: selectedOrderInfo!
   marketInfo: marketInfo!
 }
 
 input TradeFilter {
   OR: [TradeFilter!]
+  status: String
+  txid: String
   from: String
-  to: String
+  to: String  
   soldTokens: String
   boughtTokens: String
   tokenName: String
@@ -199,7 +234,7 @@ input NewOrderFilter {
   tokenName: String
   orderType: String
   type: String
-  status: String
+  status: _OrderStatusType
   price: String
   orderId: String
   owner: String
@@ -362,7 +397,12 @@ type Subscription {
   onSyncInfo : syncInfo
   onChartInfo : chartInfo
   onMyOrderInfo : myOrderInfo
+  onCanceledOrderInfo : canceledOrderInfo
+  onActiveOrderInfo : activeOrderInfo
+  onFulfilledOrderInfo : fulfilledOrderInfo
+  onMyTradeInfo : myTradeInfo
   onSellOrderInfo : sellOrderInfo
+  onSelectedOrderInfo : selectedOrderInfo
   onBuyOrderInfo : buyOrderInfo
   onMarketInfo : marketInfo
 }
@@ -406,6 +446,14 @@ enum _OracleStatusType {
   WITHDRAW
 }
 
+enum _OrderStatusType {
+  FULFILLED
+  ACTIVE
+  CANCELED
+  PENDING
+  PENDINGCANCEL  
+}
+
 enum _TokenType {
   RUNES
   PRED
@@ -442,6 +490,7 @@ enum _TransactionStatus {
    PENDING
    FAIL
    SUCCESS
+   PENDINGCANCEL
 }
 `;
 

@@ -195,15 +195,19 @@ function buildTransactionFilters({
 }
 
 function buildNewOrderFilters({
-  OR = [], txid, tokenName, orderType, status, token, type, price, orderId, owner, sellToken, buyToken, priceMul, priceDiv, time, amount, blockNum
+  OR = [], txid, tokenName, startAmount, orderType, status, token, type, price, orderId, owner, sellToken, buyToken, priceMul, priceDiv, time, amount, blockNum
 }) {
-  const filter = (txid || tokenName || orderType || status || token || type || price || orderId || owner || sellToken || buyToken || priceMul || priceDiv || time || amount || blockNum) ? {} : null;
+  const filter = (txid || tokenName || startAmount || orderType || status || token || type || price || orderId || owner || sellToken || buyToken || priceMul || priceDiv || time || amount || blockNum) ? {} : null;
   if (txid) {
     filter.txid = txid;
   }
 
   if (tokenName) {
     filter.tokenName = tokenName;
+  }
+
+  if (startAmount) {
+    filter.startAmount = startAmount;
   }
 
   if (orderType) {
@@ -300,9 +304,17 @@ function buildMarketFilters({
 }
 
 function buildTradeFilters({
-  OR = [], date, from, to, soldTokens, boughtTokens, tokenName, orderType, price, orderId, time, amount, blockNum
+  OR = [], txid, xTo, xFrom, status, date, from, to, soldTokens, boughtTokens, tokenName, orderType, price, orderId, time, amount, blockNum
 }) {
-  const filter = (date || from || to || soldTokens || boughtTokens || tokenName || orderType || price || orderId  || time || amount || blockNum) ? {} : null;
+  const filter = (txid || status || date || from || to || soldTokens || boughtTokens || tokenName || orderType || price || orderId  || time || amount || blockNum) ? {} : null;
+
+  if (txid) {
+    filter.txid = txid;
+  }
+
+  if (status) {
+    filter.status = status;
+  }
 
   if (date) {
     filter.date = date;
@@ -353,7 +365,7 @@ function buildTradeFilters({
   }  
   let filters = filter ? [filter] : [];
   for (let i = 0; i < OR.length; i++) {
-    filters = filters.concat(buildNewOrderFilters(OR[i]));
+    filters = filters.concat(buildTradeFilters(OR[i]));
   }
   return filters;
 }
@@ -1231,7 +1243,8 @@ module.exports = {
         receiverAddress,
         token,
         price,
-        amount,    
+        amount,
+        startAmount: amount,    
         orderId: '?',
         sellToken,
         buyToken,
@@ -1268,7 +1281,7 @@ module.exports = {
       const gasLimit = sentTx ? sentTx.args.gasLimit : Config.DEFAULT_GAS_LIMIT;
       const gasPrice = sentTx ? sentTx.args.gasPrice : Config.DEFAULT_GAS_PRICE;
       const NewOrder = {
-        status: 'CANCELED',
+        status: 'PENDINGCANCEL',
         orderId: orderId,
         type: 'CANCELORDER',
       }
@@ -1276,7 +1289,7 @@ module.exports = {
         txid,
         type: 'CANCELORDER',
         version,
-        status: 'PENDING',
+        status: 'PENDINGCANCEL',
         gasLimit: gasLimit.toString(10),
         gasPrice: gasPrice.toFixed(8),
         createdTime: moment().unix(),
@@ -1326,6 +1339,8 @@ module.exports = {
         receiverAddress: exchangeAddress,
       };
       //await DBHelper.cancelOrderByQuery(db.NewOrder, { orderId }, NewOrder);
+      console.log('Execute order Tx object');
+      console.log(tx);
       await DBHelper.insertTransaction(Transactions, tx);
       return tx;
     },

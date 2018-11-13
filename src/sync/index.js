@@ -14,6 +14,7 @@ const updateTxDB = require('./updateLocalTx');
 const Topic = require('../models/topic');
 const NewOrder = require('../models/newOrder');
 const CancelOrder = require('../models/cancelOrder');
+const FulfillOrder = require('../models/fulfillOrder');
 const Trade = require('../models/trade');
 const MarketMaker = require('../models/marketMaker');
 const OrderFulfilled = require('../models/orderFulfilled');
@@ -113,22 +114,22 @@ async function sync(db) {
       getLogger().debug('Synced Topics');
 
       await syncNewOrder(db, startBlock, endBlock, removeHexPrefix);
-      getLogger().debug('Synced NewOrder');
-
-      await syncTrade(db, startBlock, endBlock, removeHexPrefix);
-      getLogger().debug('Synced syncTrade');
+      getLogger().debug('Synced NewOrder');      
 
       await syncMarketMaker(db, startBlock, endBlock, removeHexPrefix);
       getLogger().debug('Synced syncMarketMaker');
 
-      await syncOrderFulfilled(db, startBlock, endBlock, removeHexPrefix);
-      getLogger().debug('Synced syncOrderFulfilled');
-
       await syncOrderCancelled(db, startBlock, endBlock, removeHexPrefix);
-      getLogger().debug('Synced syncOrderCancelled'); 
+      getLogger().debug('Synced syncOrderCancelled');
+
+      await syncOrderFulfilled(db, startBlock, endBlock, removeHexPrefix);
+      getLogger().debug('Synced syncOrderFulfilled'); 
 
       await syncMarkets(db, startBlock, endBlock, removeHexPrefix);
       getLogger().debug('Synced markets'); 
+
+      await syncTrade(db, startBlock, endBlock, removeHexPrefix);
+      getLogger().debug('Synced syncTrade');
 
       await Promise.all([
         syncCentralizedOracleCreated(db, startBlock, endBlock, removeHexPrefix),
@@ -937,9 +938,10 @@ async function syncOrderCancelled(db, startBlock, endBlock, removeHexPrefix) {
     _.forEachRight(event.log, (rawLog) => {
       if (rawLog._eventName === 'OrderCancelled') {
         const removeNewOrderDB = new Promise(async (resolve) => {
-          try {
+          try {            
             const cancelOrder = new CancelOrder(blockNum, txid, rawLog).translate();
-            await DBHelper.removeOrdersByQuery(db.NewOrder, { orderId: cancelOrder.orderId });
+            const orderId = cancelOrder.orderId;
+            await DBHelper.updateCanceledOrdersByQuery(db.NewOrder, { orderId }, cancelOrder);
             resolve();
           } catch (err) {
             getLogger().error(`ERROR: ${err.message}`);
@@ -961,39 +963,56 @@ async function syncOrderFulfilled(db, startBlock, endBlock, removeHexPrefix) {
       startBlock, endBlock, contractMetadata.Radex.address,
       [contractMetadata.Radex.OrderFulfilled], contractMetadata, removeHexPrefix,
     );
-    getLogger().debug('searchlog OrderCancelled');
+    getLogger().debug('searchlog OrderFulfilled');
   } catch (err) {
     getLogger().error(`ERROR: ${err.message}`);
     return;
   }
 
-  getLogger().debug(`${startBlock} - ${endBlock}: Retrieved ${result.length} entries from OrderCancelled`);
-  const createCancelOrderPromises = [];
+  getLogger().debug(`${startBlock} - ${endBlock}: Retrieved ${result.length} entries from OrderFulfilled`);
+  const createFulfillOrderPromises = [];
 
   _.forEach(result, (event, index) => {
     const blockNum = event.blockNumber;
     const txid = event.transactionHash;
     _.forEachRight(event.log, (rawLog) => {
       if (rawLog._eventName === 'OrderFulfilled') {
-        /* Change with update DB later instead of removing it from the records */
-        const removeNewOrderDB = new Promise(async (resolve) => {
+        const fulfillOrderDB = new Promise(async (resolve) => {
           try {
-            const cancelOrder = new CancelOrder(blockNum, txid, rawLog).translate();
-            await DBHelper.removeOrdersByQuery(db.NewOrder, { orderId: cancelOrder.orderId });
+            const fulfillOrder = new FulfillOrder(blockNum, txid, rawLog).translate();
+            const orderId = fulfillOrder.orderId;
+            await DBHelper.updateFulfilledOrdersByQuery(db.NewOrder, { orderId }, fulfillOrder);
+            //await DBHelper.removeOrdersByQuery(db.NewOrder, { orderId: fulfillOrder.orderId });
             resolve();
           } catch (err) {
             getLogger().error(`ERROR: ${err.message}`);
             resolve();
           }
         });
-        createCancelOrderPromises.push(removeNewOrderDB);
+        createFulfillOrderPromises.push(fulfillOrderDB);
       }
     });
   });
 
-  await Promise.all(createCancelOrderPromises);
+  await Promise.all(createFulfillOrderPromises);
 }
-
+async function addTrade(rawLog, blockNum, txid){
+  try {
+    const getOrder = await DBHelper.findOne(db.NewOrder, { orderId: rawLog._orderId.toString(10) });
+    //const getOrder = await DBHelper.findTradeAndUpdate(db.NewOrder, { orderId: rawLog._orderId.toString(10) }, rawLog._amount.toString());
+    const trade = new Trade(blockNum, txid, rawLog, getOrder).translate();
+    const orderId = trade.orderId
+    const newAmount = Number(getOrder.amount) - Number(trade.soldTokens);
+    const updateOrder = {
+      amount: newAmount,
+    }
+    await DBHelper.updateTradeOrderByQuery(db.NewOrder, { orderId }, updateOrder);
+    await DBHelper.insertTopic(db.Trade, trade);
+    getLogger().debug('Trade Inserted');
+  } catch (err) {
+    getLogger().error(`ERROR: ${err.message}`);
+  }
+}
 async function syncTrade(db, startBlock, endBlock, removeHexPrefix) {
   let result;
   try {
@@ -1009,38 +1028,33 @@ async function syncTrade(db, startBlock, endBlock, removeHexPrefix) {
 
   getLogger().debug(`${startBlock} - ${endBlock}: Retrieved ${result.length} entries from syncTrade`);
   const createTradePromises = [];
-
-  _.forEach(result, (event, index) => {
+  for (let event of result){
     const blockNum = event.blockNumber;
     const txid = event.transactionHash;
-    _.forEachRight(event.log, (rawLog) => {
+    for (let rawLog of event.log){
       if (rawLog._eventName === 'Trade') {
+        await addTrade(rawLog, blockNum, txid);  
         const tradeOrderDB = new Promise(async (resolve) => {
-          try {
-            const getOrder = await DBHelper.findOne(db.NewOrder, { orderId: rawLog._orderId.toString(10) });
-            const trade = new Trade(blockNum, txid, rawLog, getOrder).translate();
-            const orderId = trade.orderId
-            const newAmount = Number(getOrder.amount) - Number(trade.soldTokens);
-            const updateOrder = {
-              orderId: trade.orderId,
-              amount: newAmount,
-            }
-            
-            await DBHelper.updateOrderByQuery(db.NewOrder, { orderId }, updateOrder);
-            await DBHelper.insertTopic(db.Trade, trade);
-            getLogger().debug('Trade Inserted');
+          try {                      
             resolve();
           } catch (err) {
             getLogger().error(`ERROR: ${err.message}`);
             resolve();
           }
         });
-        createTradePromises.push(tradeOrderDB);
+        tradeOrderDB;
+        //createTradePromises.push(tradeOrderDB);
       }
-    });
+    }
+    _.forEachRight(event.log, (rawLog) => {
+      
+    })
+  }
+  _.forEach(result, (event, index) => {
+    ;
   });
 
-  await Promise.all(createTradePromises);
+  //await Promise.all(createTradePromises);
 }
 
 function dynamicSort(property) {
@@ -1076,6 +1090,10 @@ async function syncMarkets(db, startBlock, endBlock, removeHexPrefix) {
       for (var key in metadata){
         if (metadata[key].pair) {
           if (key !== 'Runebase') {
+            change = 0;
+            volume = 0;
+            filled = 0;
+            minSellPrice = 0;
             const unixTime = Date.now();
             var inputDate = unixTime - 84600000; // 24 hours
             const pair = metadata[key].pair;
@@ -1119,7 +1137,8 @@ async function syncMarkets(db, startBlock, endBlock, removeHexPrefix) {
                     ['status', 'tokenName', 'price',],
                   );
             if (orders !== undefined) {
-              minSellPrice = Math.min.apply(Math, orders.map(function(order) { return order.price; }))
+              minSellPrice = Math.min.apply(Math, orders.map(function(order) { return order.price; }));
+
             }            
             const obj = {
               market: metadata[key].pair,
@@ -1170,7 +1189,7 @@ async function syncMarketMaker(db, startBlock, endBlock, removeHexPrefix) {
         const removeNewOrderDB = new Promise(async (resolve) => {
           try {
             const marketMaker = new MarketMaker(blockNum, txid, rawLog).translate();
-            console.log(marketMaker);
+            //console.log(marketMaker);
             //await DBHelper.removeOrdersByQuery(db.NewOrder, { orderId: cancelOrder.orderId });
             resolve();
           } catch (err) {

@@ -23,7 +23,8 @@ class OrderFulFilled {
     return {
       status: 'ORDERFULFILLED',
       orderId: this.orderId,
-      time: this.time,
+      txCanceled: this.txid,
+      timeCanceled: this.time,
     };
   }
 }

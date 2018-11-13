@@ -4,7 +4,7 @@ const _ = require('lodash');
 const { Decoder, Utils } = require('rweb3');
 const { isMainnet } = require('../config');
 
-class CancelOrder {
+class FulfillOrder {
   constructor(blockNum, txid, rawLog) {
     if (!_.isEmpty(rawLog)) {
       this.blockNum = blockNum;
@@ -16,17 +16,17 @@ class CancelOrder {
 
   decode() {
     this.orderId = this.rawLog._id.toString(10);
-    this.time = this.rawLog._time.toString(10);   
+    this.time = this.rawLog._time.toString(10);    
   }
 
   translate() {
     return {
-      txCanceled: this.txid,
-      timeCanceled: this.time,
-      status: 'CANCELED',
+      txFulfilled: this.txid,
+      timeFulfilled: this.time,
+      status: 'FULFILLED',
       orderId: this.orderId,
     };
   }
 }
 
-module.exports = CancelOrder;
+module.exports = FulfillOrder;

@@ -171,6 +171,52 @@ class DBHelper {
     }
   }
   /*
+  * Canceled orders
+  *
+  */
+  static async updateCanceledOrdersByQuery(db, query, topic) {
+    try {
+      await db.update(
+        query,
+        {
+          $set: {
+            orderId: topic.orderId,
+            status: topic.status,
+            timeCanceled: topic.timeCanceled,
+            txCanceled: topic.txCanceled,
+          },
+        },
+        {},
+      );
+    } catch (err) {
+      getLogger().error(`Error update Topic by query:${query}: ${err.message}`);
+    }
+  }
+
+  /*
+  * FulFill orders
+  *
+  */
+  static async updateFulfilledOrdersByQuery(db, query, topic) {
+    try {
+      await db.update(
+        query,
+        {
+          $set: {
+            orderId: topic.orderId,
+            status: topic.status,
+            timeFulfilled: topic.timeFulfilled,
+            txFulfilled: topic.txFulfilled,
+          },
+        },
+        {},
+      );
+    } catch (err) {
+      getLogger().error(`Error update Topic by query:${query}: ${err.message}`);
+    }
+  }
+
+  /*
   * Update Order
   *
   */
@@ -196,6 +242,27 @@ class DBHelper {
             priceDiv: topic.priceDiv,
             time: topic.time,
             amount: topic.amount,
+            startAmount: topic.startAmount,
+          },
+        },
+        {},
+      );
+    } catch (err) {
+      getLogger().error(`Error update Topic by query:${query}: ${err.message}`);
+    }
+  }
+
+  /*
+  * Update TradeOrder
+  *
+  */
+  static async updateTradeOrderByQuery(db, query, topic) {
+    try {
+      await db.update(
+        query,
+        {
+          $set: {
+            amount: topic.amount,
           },
         },
         {},
@@ -212,7 +279,9 @@ class DBHelper {
         {
           $set: {
             orderId: topic.orderId,
-            status: topic.status,            
+            status: topic.status,
+            timeCanceled: topic.timeCanceled,
+            txCanceled: topic.txCanceled,            
           },
         },
         {},
@@ -222,6 +291,31 @@ class DBHelper {
     }
   }
 
+ /*
+  * Returns the fields of the object in one of the tables searched by the query.
+  * @param db The DB table.
+  * @param query {Object} The query by items.
+  * @param fields {Array} The fields to return for the found item in an array.
+  */
+  static async findTradeAndUpdate(db, query, fields, soldTokens, orderId) {
+    let fieldsObj;
+    if (!_.isEmpty(fields)) {
+      fieldsObj = {};
+      _.each(fields, field => fieldsObj[field] = 1);
+    }
+
+    const found = await db.findOne(query, fieldsObj);
+    if (!found) {
+      const { filename } = db.nedb;
+      throw Error(`Could not findOne ${filename.substr(filename.lastIndexOf('/') + 1)} by query ${JSON.stringify(query)}`);
+    }
+    const newAmount = Number(found.amount) - Number(soldTokens);
+    const updateOrder = {
+      amount: newAmount,
+    }            
+    await DBHelper.updateTradeOrderByQuery(db, { orderId }, updateOrder);
+    return found;
+  }
 
 
   /*
@@ -261,7 +355,7 @@ class DBHelper {
     const found = await db.find(query, fieldsObj);
     if (!found) {
       const { filename } = db.nedb;
-      throw Error(`Could not findOne ${filename.substr(filename.lastIndexOf('/') + 1)} by query ${JSON.stringify(query)}`);
+      throw Error(`Could not find ${filename.substr(filename.lastIndexOf('/') + 1)} by query ${JSON.stringify(query)}`);
     }
     return found;
   }

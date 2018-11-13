@@ -25,7 +25,8 @@ module.exports = {
     FAIL: 'FAIL',
     ACTIVE: 'ACTIVE',
     FULFILLED: 'FULFILLED',
-    CANCELD: 'CANCELD',
+    PENDINGCANCEL: 'PENDINGCANCEL',
+    CANCELED: 'CANCELED',
   },
 
   execFile: {
