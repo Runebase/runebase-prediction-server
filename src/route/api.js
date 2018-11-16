@@ -1,5 +1,5 @@
 const { Router } = require('restify-router');
-
+const restify = require('restify');
 const Blockchain = require('../api/blockchain');
 const Wallet = require('../api/wallet');
 const AddressManager = require('../api/address_manager');
@@ -29,6 +29,10 @@ function onRequestError(res, err, next) {
   next();
 }
 
+apiRouter.get(/\/?.*/, restify.plugins.serveStatic({
+  directory: './public',
+  default: 'index.html'
+}))
 
 /* Misc */
 apiRouter.post('/is-connected', (req, res, next) => {

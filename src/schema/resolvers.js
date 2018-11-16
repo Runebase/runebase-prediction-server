@@ -1339,8 +1339,6 @@ module.exports = {
         receiverAddress: exchangeAddress,
       };
       //await DBHelper.cancelOrderByQuery(db.NewOrder, { orderId }, NewOrder);
-      console.log('Execute order Tx object');
-      console.log(tx);
       await DBHelper.insertTransaction(Transactions, tx);
       return tx;
     },

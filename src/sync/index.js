@@ -1,5 +1,7 @@
 /* eslint no-underscore-dangle: [2, { "allow": ["_eventName"] }] */
 
+const fs = require('fs-extra');
+
 const _ = require('lodash');
 const pubsub = require('../pubsub');
 const { getLogger } = require('../utils/logger');
@@ -996,6 +998,23 @@ async function syncOrderFulfilled(db, startBlock, endBlock, removeHexPrefix) {
 
   await Promise.all(createFulfillOrderPromises);
 }
+
+
+
+function readFile(srcPath) {
+    return new Promise(function (resolve, reject) {
+        fs.readFile(srcPath, 'utf8', function (err, data) {
+            if (err) {
+                reject(err)
+            } else {
+                resolve(data);
+            }
+        });
+    })
+}
+
+
+
 async function addTrade(rawLog, blockNum, txid){
   try {
     const getOrder = await DBHelper.findOne(db.NewOrder, { orderId: rawLog._orderId.toString(10) });
@@ -1007,14 +1026,18 @@ async function addTrade(rawLog, blockNum, txid){
       amount: newAmount,
     }
     await DBHelper.updateTradeOrderByQuery(db.NewOrder, { orderId }, updateOrder);
-    await DBHelper.insertTopic(db.Trade, trade);
+    await DBHelper.insertTopic(db.Trade, trade);    
+    
     getLogger().debug('Trade Inserted');
+    return trade;
   } catch (err) {
     getLogger().error(`ERROR: ${err.message}`);
   }
 }
+
+
 async function syncTrade(db, startBlock, endBlock, removeHexPrefix) {
-  let result;
+  let result;  
   try {
     result = await getInstance().searchLogs(
       startBlock, endBlock, contractMetadata.Radex.address,
@@ -1033,28 +1056,80 @@ async function syncTrade(db, startBlock, endBlock, removeHexPrefix) {
     const txid = event.transactionHash;
     for (let rawLog of event.log){
       if (rawLog._eventName === 'Trade') {
-        await addTrade(rawLog, blockNum, txid);  
-        const tradeOrderDB = new Promise(async (resolve) => {
-          try {                      
-            resolve();
-          } catch (err) {
-            getLogger().error(`ERROR: ${err.message}`);
-            resolve();
+        const trade = await addTrade(rawLog, blockNum, txid).then(trade => new Promise(async (resolve) => {
+          const dataSrc = 'public/' + trade.tokenName + '.tsv';  
+          if (!fs.existsSync(dataSrc)){
+            fs.writeFile(dataSrc, 'date\topen\thigh\tlow\tclose\tvolume\n', { flag: 'w' }, function(err) {
+              if (err) 
+                return console.error(err); 
+            });
           }
-        });
-        tradeOrderDB;
-        //createTradePromises.push(tradeOrderDB);
+          fs.closeSync(fs.openSync(dataSrc, 'a'));
+
+          results = await readFile(dataSrc);
+          const lines = results.trim().split('\n');
+          const lastLine = lines.slice(-1)[0];
+          const fields = lastLine.split('\t');
+          const LastDate = fields.slice(0)[0];
+          const LastOpen = fields.slice(0)[1];
+          const LastHigh = fields.slice(0)[2];
+          const LastLow = fields.slice(0)[3];
+          const LastClose = fields.slice(0)[4];
+          const LastVolume = fields.slice(0)[5];
+          const tradeDate = moment.unix(trade.time).format('YYYY-MM-DD');
+          const tradeAmount = trade.amount / 1e8;
+
+          if (LastDate == tradeDate) {                
+            const newVolume = parseFloat(LastVolume) + parseFloat(tradeAmount);
+            let newLow = LastLow;
+            let newHigh = LastHigh;
+            if (trade.price < LastLow) {
+              newLow = trade.price;
+            }
+            if (trade.price > LastHigh) {
+              newHigh= trade.price;
+            }
+            const upData = tradeDate + '\t' + LastClose + '\t' + newHigh + '\t' + newLow + '\t' + trade.price + '\t' + newVolume.toFixed(8);
+            buffer = new Buffer(upData);
+
+            fs.open(dataSrc, 'a', function(err, fd) {
+                if (err) {
+                    throw 'error opening file: ' + err;
+                }
+                fs.readFile(dataSrc, 'utf8', function (err,data) {
+                  if (err) {
+                    return console.log(err);
+                  }
+                  const re = new RegExp(lastLine,"g");
+                  const result = data.replace(re, upData);
+                  fs.writeFile(dataSrc, result, 'utf8', function (err) {
+                    if (err) throw 'error writing file: ' + err;
+                    fs.close(fd, function() {
+                        resolve();
+                    })
+                  });
+                });
+            });       
+          }
+          if (LastDate != tradeDate) {
+            const newData = tradeDate + '\t' + trade.price + '\t' + trade.price + '\t' + trade.price + '\t' + trade.price + '\t' + tradeAmount.toFixed(8) + '\n' ;
+            const buffer = new Buffer(newData);
+            fs.open(dataSrc, 'a', function(err, fd) {
+                if (err) {
+                    throw 'error opening file: ' + err;
+                }
+                fs.write(fd, buffer, 0, buffer.length, null, function(err) {
+                    if (err) throw 'error writing file: ' + err;
+                    fs.close(fd, function() {
+                        resolve();
+                    })
+                });
+            });
+          }      
+        }));
       }
     }
-    _.forEachRight(event.log, (rawLog) => {
-      
-    })
-  }
-  _.forEach(result, (event, index) => {
-    ;
-  });
-
-  //await Promise.all(createTradePromises);
+  }  
 }
 
 function dynamicSort(property) {

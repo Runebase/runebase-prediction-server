@@ -180,6 +180,14 @@ type myTradeInfo {
   myTradeInfo: [Trade] 
 }
 
+type buyHistoryInfo {
+  buyHistoryInfo: [Trade] 
+}
+
+type sellHistoryInfo {
+  sellHistoryInfo: [Trade] 
+}
+
 type selectedOrderInfo {
   selectedOrderInfo: [NewOrder] 
 }
@@ -205,6 +213,8 @@ type Query {
   canceledOrderInfo: canceledOrderInfo!
   sellOrderInfo: sellOrderInfo!
   myTradeInfo: myTradeInfo!
+  buyHistoryInfo: buyHistoryInfo!
+  sellHistoryInfo: sellHistoryInfo!
   buyOrderInfo: buyOrderInfo!
   selectedOrderInfo: selectedOrderInfo!
   marketInfo: marketInfo!
@@ -401,6 +411,8 @@ type Subscription {
   onActiveOrderInfo : activeOrderInfo
   onFulfilledOrderInfo : fulfilledOrderInfo
   onMyTradeInfo : myTradeInfo
+  onBuyHistoryInfo : buyHistoryInfo
+  onSellHistoryInfo : sellHistoryInfo
   onSellOrderInfo : sellOrderInfo
   onSelectedOrderInfo : selectedOrderInfo
   onBuyOrderInfo : buyOrderInfo
