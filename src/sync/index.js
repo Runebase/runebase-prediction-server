@@ -1057,62 +1057,62 @@ async function syncTrade(db, startBlock, endBlock, removeHexPrefix) {
     for (let rawLog of event.log){
       if (rawLog._eventName === 'Trade') {
         const trade = await addTrade(rawLog, blockNum, txid).then(trade => new Promise(async (resolve) => {
-          const dataSrc = 'public/' + trade.tokenName + '.tsv';  
-          if (!fs.existsSync(dataSrc)){
-            fs.writeFile(dataSrc, 'date\topen\thigh\tlow\tclose\tvolume\n', { flag: 'w' }, function(err) {
-              if (err) 
-                return console.error(err); 
-            });
+        const dataSrc = isMainnet() ? 'public/Main' + trade.tokenName + '.tsv' : 'public/Test' + trade.tokenName + '.tsv'; ; 
+        if (!fs.existsSync(dataSrc)){
+          fs.writeFile(dataSrc, 'date\topen\thigh\tlow\tclose\tvolume\n', { flag: 'w' }, function(err) {
+            if (err) 
+              return console.error(err); 
+          });
+        }
+        fs.closeSync(fs.openSync(dataSrc, 'a'));
+
+        results = await readFile(dataSrc);
+        const lines = results.trim().split('\n');
+        const lastLine = lines.slice(-1)[0];
+        const fields = lastLine.split('\t');
+        const LastDate = fields.slice(0)[0];
+        const LastOpen = fields.slice(0)[1];
+        const LastHigh = fields.slice(0)[2];
+        const LastLow = fields.slice(0)[3];
+        const LastClose = fields.slice(0)[4];
+        const LastVolume = fields.slice(0)[5];
+        const tradeDate = moment.unix(trade.time).format('YYYY-MM-DD');
+        const tradeAmount = trade.amount / 1e8;
+
+        if (LastDate == tradeDate) {                
+          const newVolume = parseFloat(LastVolume) + parseFloat(tradeAmount);
+          let newLow = LastLow;
+          let newHigh = LastHigh;
+          if (trade.price < LastLow) {
+            newLow = trade.price;
           }
-          fs.closeSync(fs.openSync(dataSrc, 'a'));
+          if (trade.price > LastHigh) {
+            newHigh= trade.price;
+          }
+          const upData = tradeDate + '\t' + LastClose + '\t' + newHigh + '\t' + newLow + '\t' + trade.price + '\t' + newVolume.toFixed(8);
+          buffer = new Buffer(upData);
 
-          results = await readFile(dataSrc);
-          const lines = results.trim().split('\n');
-          const lastLine = lines.slice(-1)[0];
-          const fields = lastLine.split('\t');
-          const LastDate = fields.slice(0)[0];
-          const LastOpen = fields.slice(0)[1];
-          const LastHigh = fields.slice(0)[2];
-          const LastLow = fields.slice(0)[3];
-          const LastClose = fields.slice(0)[4];
-          const LastVolume = fields.slice(0)[5];
-          const tradeDate = moment.unix(trade.time).format('YYYY-MM-DD');
-          const tradeAmount = trade.amount / 1e8;
-
-          if (LastDate == tradeDate) {                
-            const newVolume = parseFloat(LastVolume) + parseFloat(tradeAmount);
-            let newLow = LastLow;
-            let newHigh = LastHigh;
-            if (trade.price < LastLow) {
-              newLow = trade.price;
+          fs.open(dataSrc, 'a', function(err, fd) {
+            if (err) {
+              throw 'error opening file: ' + err;
             }
-            if (trade.price > LastHigh) {
-              newHigh= trade.price;
-            }
-            const upData = tradeDate + '\t' + LastClose + '\t' + newHigh + '\t' + newLow + '\t' + trade.price + '\t' + newVolume.toFixed(8);
-            buffer = new Buffer(upData);
-
-            fs.open(dataSrc, 'a', function(err, fd) {
-                if (err) {
-                    throw 'error opening file: ' + err;
-                }
-                fs.readFile(dataSrc, 'utf8', function (err,data) {
-                  if (err) {
-                    return console.log(err);
-                  }
-                  const re = new RegExp(lastLine,"g");
-                  const result = data.replace(re, upData);
-                  fs.writeFile(dataSrc, result, 'utf8', function (err) {
-                    if (err) throw 'error writing file: ' + err;
-                    fs.close(fd, function() {
-                        resolve();
-                    })
-                  });
+            fs.readFile(dataSrc, 'utf8', function (err,data) {
+              if (err) {
+                return console.log(err);
+              }
+              const re = new RegExp(lastLine,"g");
+              const result = data.replace(re, upData);
+              fs.writeFile(dataSrc, result, 'utf8', function (err) {
+                if (err) throw 'error writing file: ' + err;
+                  fs.close(fd, function() {
+                      resolve();
+                  })
                 });
+              });
             });       
           }
           if (LastDate != tradeDate) {
-            const newData = tradeDate + '\t' + trade.price + '\t' + trade.price + '\t' + trade.price + '\t' + trade.price + '\t' + tradeAmount.toFixed(8) + '\n' ;
+            const newData = tradeDate + '\t' + LastClose + '\t' + trade.price + '\t' + trade.price + '\t' + trade.price + '\t' + tradeAmount.toFixed(8) + '\n' ;
             const buffer = new Buffer(newData);
             fs.open(dataSrc, 'a', function(err, fd) {
                 if (err) {
