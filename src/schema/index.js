@@ -40,11 +40,11 @@ type Market {
 type Trade {
   status: String!
   txid: String!
-  date: String!  
+  date: String!
   from: String!
-  to: String!  
+  to: String!
   soldTokens: String!
-  boughtTokens: String!  
+  boughtTokens: String!
   tokenName: String!
   orderType: String!
   price: String!
@@ -145,55 +145,55 @@ type syncInfo {
   syncBlockTime: String
   syncPercent: Int
   peerNodeCount: Int
-  addressBalances: [AddressBalance] 
+  addressBalances: [AddressBalance]
 }
 
 type chartInfo {
-  chartInfo: [Trade] 
+  chartInfo: [Trade]
 }
 
 type myOrderInfo {
-  myOrderInfo: [NewOrder] 
+  myOrderInfo: [NewOrder]
 }
 
 type activeOrderInfo {
-  activeOrderInfo: [NewOrder] 
+  activeOrderInfo: [NewOrder]
 }
 
 type fulfilledOrderInfo {
-  fulfilledOrderInfo: [NewOrder] 
+  fulfilledOrderInfo: [NewOrder]
 }
 
 type canceledOrderInfo {
-  canceledOrderInfo: [NewOrder] 
+  canceledOrderInfo: [NewOrder]
 }
 
 type buyOrderInfo {
-  buyOrderInfo: [NewOrder] 
+  buyOrderInfo: [NewOrder]
 }
 
 type sellOrderInfo {
-  sellOrderInfo: [NewOrder] 
+  sellOrderInfo: [NewOrder]
 }
 
 type myTradeInfo {
-  myTradeInfo: [Trade] 
+  myTradeInfo: [Trade]
 }
 
 type buyHistoryInfo {
-  buyHistoryInfo: [Trade] 
+  buyHistoryInfo: [Trade]
 }
 
 type sellHistoryInfo {
-  sellHistoryInfo: [Trade] 
+  sellHistoryInfo: [Trade]
 }
 
 type selectedOrderInfo {
-  selectedOrderInfo: [NewOrder] 
+  selectedOrderInfo: [NewOrder]
 }
 
 type marketInfo {
-  marketInfo: [Market] 
+  marketInfo: [Market]
 }
 
 type Query {
@@ -225,7 +225,7 @@ input TradeFilter {
   status: String
   txid: String
   from: String
-  to: String  
+  to: String
   soldTokens: String
   boughtTokens: String
   tokenName: String
@@ -400,7 +400,7 @@ type Mutation {
     orderId: String!
     exchangeAmount: String!
   ): Transaction
-  
+
 }
 
 type Subscription {
@@ -463,7 +463,7 @@ enum _OrderStatusType {
   ACTIVE
   CANCELED
   PENDING
-  PENDINGCANCEL  
+  PENDINGCANCEL
 }
 
 enum _TokenType {

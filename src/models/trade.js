@@ -16,21 +16,21 @@ class Trade {
   }
 
   decode() {
-    this.date = new Date(this.rawLog._time.toString(10)*1000);  
+    this.date = new Date(this.rawLog._time.toString(10)*1000);
     this.orderId = this.rawLog._orderId.toString(10);
     this.time = Number(this.rawLog._time.toString(10));
     this.from = this.rawLog._from.toString();
-    this.to = this.rawLog._to.toString(); 
-    this.soldTokens = this.rawLog._soldTokens.toString(10);   
-    this.boughtTokens = this.rawLog._boughtTokens.toString(10);  
+    this.to = this.rawLog._to.toString();
+    this.soldTokens = this.rawLog._soldTokens.toString(10);
+    this.boughtTokens = this.rawLog._boughtTokens.toString(10);
     this.price = this.getOrder.price;
     this.orderType = this.getOrder.orderType;
     this.tokenName = this.getOrder.tokenName;
     if (this.orderType === "SELLORDER") {
-      this.amount = this.soldTokens;              
+      this.amount = this.soldTokens;
     }
     if (this.orderType === "BUYORDER") {
-      this.amount = this.boughtTokens;  
+      this.amount = this.boughtTokens;
     }
   }
 

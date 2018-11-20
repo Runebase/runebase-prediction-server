@@ -69,8 +69,8 @@ async function initDB() {
     const metadata = getContractMetadata();
 
     for (var key in metadata){
-      if (metadata[key].pair) {              
-        if (key !== 'Runebase') { 
+      if (metadata[key].pair) {
+        if (key !== 'Runebase') {
           const addMarket = metadata[key].pair;
           db.Markets.count({ market: addMarket }, function (err, count) {
             if (count === 0) {
@@ -78,8 +78,8 @@ async function initDB() {
               db.Markets.insert(market);
             }
           });
-        }        
-      }     
+        }
+      }
     }
 
   } catch (err) {
@@ -145,6 +145,38 @@ class DBHelper {
       getLogger().debug(`Remove: ${numRemoved} Orders query:${query}`);
     } catch (err) {
       getLogger().error(`Remove Orders by query:${query}: ${err.message}`);
+    }
+  }
+  /*
+  * Update Trade
+  *
+  */
+  static async updateTradeByQuery(db, query, topic) {
+    try {
+      await db.update(
+        query,
+        {
+          $set: {
+            date: topic.date,
+            txid: topic.txid,
+            status: topic.status,
+            orderId: topic.orderId,
+            time: topic.time,
+            from: topic.from,
+            to: topic.to,
+            soldTokens: topic.soldTokens,
+            boughtTokens: topic.boughtTokens,
+            price: topic.price,
+            orderType: topic.orderType,
+            tokenName: topic.tokenName,
+            amount: topic.amount,
+            blockNum: topic.blockNum,
+          },
+        },
+        {},
+      );
+    } catch (err) {
+      getLogger().error(`Error update Topic by query:${query}: ${err.message}`);
     }
   }
   /*
@@ -234,7 +266,7 @@ class DBHelper {
             type: topic.type,
             status: topic.status,
             resultIdx: topic.resultIdx,
-            creatorAddress: topic.creatorAddress,     
+            creatorAddress: topic.creatorAddress,
             owner: topic.owner,
             sellToken: topic.sellToken,
             buyToken: topic.buyToken,
@@ -281,7 +313,7 @@ class DBHelper {
             orderId: topic.orderId,
             status: topic.status,
             timeCanceled: topic.timeCanceled,
-            txCanceled: topic.txCanceled,            
+            txCanceled: topic.txCanceled,
           },
         },
         {},
@@ -312,7 +344,7 @@ class DBHelper {
     const newAmount = Number(found.amount) - Number(soldTokens);
     const updateOrder = {
       amount: newAmount,
-    }            
+    }
     await DBHelper.updateTradeOrderByQuery(db, { orderId }, updateOrder);
     return found;
   }

@@ -216,7 +216,7 @@ function buildNewOrderFilters({
 
   if (status) {
     filter.status = status;
-  }  
+  }
 
   if (token) {
     filter.token = token;
@@ -264,7 +264,7 @@ function buildNewOrderFilters({
 
   if (blockNum) {
     filter.blockNum = blockNum;
-  }  
+  }
   let filters = filter ? [filter] : [];
   for (let i = 0; i < OR.length; i++) {
     filters = filters.concat(buildNewOrderFilters(OR[i]));
@@ -295,7 +295,7 @@ function buildMarketFilters({
   if (volume) {
     filter.volume = volume;
   }
- 
+
   let filters = filter ? [filter] : [];
   for (let i = 0; i < OR.length; i++) {
     filters = filters.concat(buildMarketFilters(OR[i]));
@@ -362,7 +362,7 @@ function buildTradeFilters({
 
   if (blockNum) {
     filter.blockNum = blockNum;
-  }  
+  }
   let filters = filter ? [filter] : [];
   for (let i = 0; i < OR.length; i++) {
     filters = filters.concat(buildTradeFilters(OR[i]));
@@ -990,7 +990,7 @@ module.exports = {
         receiverAddress,
         token,
         amount,
-      } = data;      
+      } = data;
       let metadata = getContractMetadata();
       const exchangeAddress = await getInstance().fromHexAddress(metadata.Radex.address);
       const version = Config.CONTRACT_VERSION_NUM;
@@ -1012,7 +1012,7 @@ module.exports = {
           break;
         }
         case 'PRED': {
-          // Send transfer tx          
+          // Send transfer tx
           try {
             sentTx = await runebasePredictionToken.transfer({
               to: exchangeAddress,
@@ -1071,7 +1071,7 @@ module.exports = {
         receiverAddress,
         token,
         amount,
-      } = data;      
+      } = data;
       let metadata = getContractMetadata();
       const exchangeAddress = await getInstance().fromHexAddress(metadata.Radex.address);
       const version = Config.CONTRACT_VERSION_NUM;
@@ -1098,7 +1098,7 @@ module.exports = {
           break;
         }
         case 'PRED': {
-          // Send transfer tx          
+          // Send transfer tx
           try {
             tokenaddress = metadata.RunebasePredictionToken.address;
             txid = await exchange.redeemExchange({
@@ -1163,7 +1163,7 @@ module.exports = {
         amount,
         price,
         orderType,
-      } = data;      
+      } = data;
       let metadata = getContractMetadata();
       const exchangeAddress = await getInstance().fromHexAddress(metadata.Radex.address);
       const version = Config.CONTRACT_VERSION_NUM;
@@ -1175,9 +1175,9 @@ module.exports = {
       const priceFractD = priceFract.d;
       switch (token) {
         case 'PRED': {
-          // Send transfer tx          
+          // Send transfer tx
           try {
-            tokenaddress = metadata.RunebasePredictionToken.address;            
+            tokenaddress = metadata.RunebasePredictionToken.address;
           } catch (err) {
             getLogger().error(`Error calling metadata.RunebasePredictionToken.address: ${err.message}`);
             throw err;
@@ -1244,7 +1244,7 @@ module.exports = {
         token,
         price,
         amount,
-        startAmount: amount,    
+        startAmount: amount,
         orderId: '?',
         sellToken,
         buyToken,
@@ -1260,7 +1260,7 @@ module.exports = {
         senderAddress,
         orderId,
       } = data;
-      let sentTx;      
+      let sentTx;
       let metadata = getContractMetadata();
       const exchangeAddress = await getInstance().fromHexAddress(metadata.Radex.address);
       const version = Config.CONTRACT_VERSION_NUM;
@@ -1306,7 +1306,7 @@ module.exports = {
         orderId,
         exchangeAmount,
       } = data;
-      let sentTx;     
+      let sentTx;
       let metadata = getContractMetadata();
       const exchangeAddress = await getInstance().fromHexAddress(metadata.Radex.address);
       const version = Config.CONTRACT_VERSION_NUM;
@@ -1338,7 +1338,35 @@ module.exports = {
         senderAddress,
         receiverAddress: exchangeAddress,
       };
-      //await DBHelper.cancelOrderByQuery(db.NewOrder, { orderId }, NewOrder);
+      const getOrder = await DBHelper.findOne(db.NewOrder, { orderId });
+
+      let xPrice;
+      let xAmount;
+      if (getOrder.orderType == 'SELLORDER') {
+        xPrice = getOrder.price;
+        xAmount = exchangeAmount;
+      }
+      if (getOrder.orderType == 'BUYORDER') {
+        xPrice = (getOrder.price / exchangeAmount) * 1e8;
+        xAmount = exchangeAmount * getOrder.price;
+      }
+      const trade = {
+        date: new Date(moment().unix()*1000),
+        txid,
+        status: 'PENDING',
+        orderId,
+        time: moment().unix(),
+        from: senderAddress,
+        to: getOrder.owner,
+        soldTokens: '',
+        boughtTokens: '',
+        price: xPrice,
+        orderType: getOrder.orderType,
+        tokenName: getOrder.tokenName,
+        amount: xAmount,
+        blockNum: 0,
+      }
+      await DBHelper.insertTopic(db.Trade, trade)
       await DBHelper.insertTransaction(Transactions, tx);
       return tx;
     },

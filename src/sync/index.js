@@ -116,7 +116,7 @@ async function sync(db) {
       getLogger().debug('Synced Topics');
 
       await syncNewOrder(db, startBlock, endBlock, removeHexPrefix);
-      getLogger().debug('Synced NewOrder');      
+      getLogger().debug('Synced NewOrder');
 
       await syncMarketMaker(db, startBlock, endBlock, removeHexPrefix);
       getLogger().debug('Synced syncMarketMaker');
@@ -125,10 +125,10 @@ async function sync(db) {
       getLogger().debug('Synced syncOrderCancelled');
 
       await syncOrderFulfilled(db, startBlock, endBlock, removeHexPrefix);
-      getLogger().debug('Synced syncOrderFulfilled'); 
+      getLogger().debug('Synced syncOrderFulfilled');
 
       await syncMarkets(db, startBlock, endBlock, removeHexPrefix);
-      getLogger().debug('Synced markets'); 
+      getLogger().debug('Synced markets');
 
       await syncTrade(db, startBlock, endBlock, removeHexPrefix);
       getLogger().debug('Synced syncTrade');
@@ -732,7 +732,7 @@ async function getAddressBalances() {
       _.map(addressBatches[loop.iteration()], async (address) => {
         // Get PRED balance
         const getPredBalancePromise = new Promise(async (getPredBalanceResolve) => {
-          let predBalance = new BigNumber(0);          
+          let predBalance = new BigNumber(0);
           try {
             const resp = await runebasePredictionToken.balanceOf({
               owner: address,
@@ -774,14 +774,14 @@ async function getAddressBalances() {
         //EXCHANGE
         // Get RUNES balance
         const getRunesExchangeBalancePromise = new Promise(async (getRunesExchangeBalanceResolve) => {
-          let RunesExchangeBalance = new BigNumber(0);          
+          let RunesExchangeBalance = new BigNumber(0);
           try {
             const hex = await getInstance().getHexAddress(address);
             const resp = await exchange.balanceOf({
               token: '0000000000000000000000000000000000000000',
               user: hex,
               senderAddress: address,
-            });            
+            });
             runesExchangeBalance = resp.balance;
           } catch (err) {
             getLogger().error(`BalanceOf ${address}: ${err.message}`);
@@ -796,7 +796,7 @@ async function getAddressBalances() {
 
         // Get PRED balance
         const getPredExchangeBalancePromise = new Promise(async (getPredExchangeBalanceResolve) => {
-          let predExchangeBalance = new BigNumber(0);          
+          let predExchangeBalance = new BigNumber(0);
           try {
             const hex = await getInstance().getHexAddress(address);
             const resp = await exchange.balanceOf({
@@ -940,7 +940,7 @@ async function syncOrderCancelled(db, startBlock, endBlock, removeHexPrefix) {
     _.forEachRight(event.log, (rawLog) => {
       if (rawLog._eventName === 'OrderCancelled') {
         const removeNewOrderDB = new Promise(async (resolve) => {
-          try {            
+          try {
             const cancelOrder = new CancelOrder(blockNum, txid, rawLog).translate();
             const orderId = cancelOrder.orderId;
             await DBHelper.updateCanceledOrdersByQuery(db.NewOrder, { orderId }, cancelOrder);
@@ -1025,9 +1025,13 @@ async function addTrade(rawLog, blockNum, txid){
     const updateOrder = {
       amount: newAmount,
     }
+    if (await DBHelper.getCount(db.Trade, { txid }) > 0) {
+      await DBHelper.updateTradeByQuery(db.Trade, { txid }, trade);
+    } else {
+      await DBHelper.insertTopic(db.Trade, trade)
+    }
     await DBHelper.updateTradeOrderByQuery(db.NewOrder, { orderId }, updateOrder);
-    await DBHelper.insertTopic(db.Trade, trade);    
-    
+
     getLogger().debug('Trade Inserted');
     return trade;
   } catch (err) {
@@ -1037,7 +1041,7 @@ async function addTrade(rawLog, blockNum, txid){
 
 
 async function syncTrade(db, startBlock, endBlock, removeHexPrefix) {
-  let result;  
+  let result;
   try {
     result = await getInstance().searchLogs(
       startBlock, endBlock, contractMetadata.Radex.address,
@@ -1057,11 +1061,11 @@ async function syncTrade(db, startBlock, endBlock, removeHexPrefix) {
     for (let rawLog of event.log){
       if (rawLog._eventName === 'Trade') {
         const trade = await addTrade(rawLog, blockNum, txid).then(trade => new Promise(async (resolve) => {
-        const dataSrc = isMainnet() ? 'public/Main' + trade.tokenName + '.tsv' : 'public/Test' + trade.tokenName + '.tsv'; ; 
+        const dataSrc = isMainnet() ? 'public/Main' + trade.tokenName + '.tsv' : 'public/Test' + trade.tokenName + '.tsv'; ;
         if (!fs.existsSync(dataSrc)){
           fs.writeFile(dataSrc, 'date\topen\thigh\tlow\tclose\tvolume\n', { flag: 'w' }, function(err) {
-            if (err) 
-              return console.error(err); 
+            if (err)
+              return console.error(err);
           });
         }
         fs.closeSync(fs.openSync(dataSrc, 'a'));
@@ -1079,7 +1083,7 @@ async function syncTrade(db, startBlock, endBlock, removeHexPrefix) {
         const tradeDate = moment.unix(trade.time).format('YYYY-MM-DD');
         const tradeAmount = trade.amount / 1e8;
 
-        if (LastDate == tradeDate) {                
+        if (LastDate == tradeDate) {
           const newVolume = parseFloat(LastVolume) + parseFloat(tradeAmount);
           let newLow = LastLow;
           let newHigh = LastHigh;
@@ -1109,7 +1113,7 @@ async function syncTrade(db, startBlock, endBlock, removeHexPrefix) {
                   })
                 });
               });
-            });       
+            });
           }
           if (LastDate != tradeDate) {
             const newData = tradeDate + '\t' + LastClose + '\t' + trade.price + '\t' + trade.price + '\t' + trade.price + '\t' + tradeAmount.toFixed(8) + '\n' ;
@@ -1125,11 +1129,11 @@ async function syncTrade(db, startBlock, endBlock, removeHexPrefix) {
                     })
                 });
             });
-          }      
+          }
         }));
       }
     }
-  }  
+  }
 }
 
 function dynamicSort(property) {
@@ -1143,7 +1147,7 @@ function dynamicSort(property) {
             return b[property].toString().localeCompare(a[property]);
         }else{
             return a[property].toString().localeCompare(b[property]);
-        }        
+        }
     }
 }
 
@@ -1173,10 +1177,10 @@ async function syncMarkets(db, startBlock, endBlock, removeHexPrefix) {
             var inputDate = unixTime - 84600000; // 24 hours
             const pair = metadata[key].pair;
             const trades = await DBHelper.find(
-                    db.Trade, 
+                    db.Trade,
                       {
-                        $and: [ 
-                        { 'date': { $gt: new Date(inputDate) } }, 
+                        $and: [
+                        { 'date': { $gt: new Date(inputDate) } },
                         { tokenName: metadata[key].pair },
                         ]
                       },
@@ -1186,14 +1190,14 @@ async function syncMarkets(db, startBlock, endBlock, removeHexPrefix) {
             const first = _.first(sortedTrades);
             const last = _.last(sortedTrades);
             if (first !== undefined && last !== undefined) {
-              change = getPercentageChange(last.price, first.price);                          
+              change = getPercentageChange(last.price, first.price);
             } else{
-              change = 0;  
+              change = 0;
             }
             for (trade in sortedTrades) {
               if (sortedTrades[trade].orderType === 'SELLORDER') {
                 filled = sortedTrades[trade].boughtTokens / 1e8;
-                volume = volume + filled;      
+                volume = volume + filled;
               }
               if (sortedTrades[trade].orderType === 'BUYORDER') {
                 filled = sortedTrades[trade].soldTokens / 1e8;
@@ -1201,7 +1205,7 @@ async function syncMarkets(db, startBlock, endBlock, removeHexPrefix) {
               }
             }
             const orders = await DBHelper.find(
-                    db.NewOrder, 
+                    db.NewOrder,
                       {
                         $and: [
                         { tokenName: metadata[key].pair },
@@ -1214,7 +1218,7 @@ async function syncMarkets(db, startBlock, endBlock, removeHexPrefix) {
             if (orders !== undefined) {
               minSellPrice = Math.min.apply(Math, orders.map(function(order) { return order.price; }));
 
-            }            
+            }
             const obj = {
               market: metadata[key].pair,
               change: change.toFixed(2),
@@ -1223,8 +1227,8 @@ async function syncMarkets(db, startBlock, endBlock, removeHexPrefix) {
               price: minSellPrice,
             }
             await DBHelper.updateMarketsByQuery(db.Markets, { market: obj.market }, obj);
-          }        
-        }   
+          }
+        }
       };
       //await DBHelper.updateMarketsByQuery(db.Markets, { market: obj.market }, obj);
       //await DBHelper.updateOrderByQuery(db.NewOrder, { orderId }, updateOrder);
