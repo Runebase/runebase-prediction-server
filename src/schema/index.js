@@ -37,6 +37,19 @@ type Market {
   orderCount: String!
 }
 
+type FundRedeem {
+  txid: String!
+  type: String!
+  token: String!
+  tokenName: String!
+  status: String!
+  owner: String!
+  time: Int!
+  date: String!
+  amount: String!
+  blockNum: Int
+}
+
 type Trade {
   status: String!
   txid: String!
@@ -148,8 +161,8 @@ type syncInfo {
   addressBalances: [AddressBalance]
 }
 
-type chartInfo {
-  chartInfo: [Trade]
+type fundRedeemInfo {
+  fundRedeemInfo: [FundRedeem]
 }
 
 type myOrderInfo {
@@ -197,6 +210,7 @@ type marketInfo {
 }
 
 type Query {
+  allFundRedeems(filter: FundRedeemFilter, orderBy: [Order!], limit: Int, skip: Int): [FundRedeem]!
   allMarkets(filter: MarketFilter, orderBy: [Order!], limit: Int, skip: Int): [Market]!
   allTrades(filter: TradeFilter, orderBy: [Order!], limit: Int, skip: Int): [Trade]!
   allNewOrders(filter: NewOrderFilter, orderBy: [Order!], limit: Int, skip: Int): [NewOrder]!
@@ -206,7 +220,7 @@ type Query {
   allVotes(filter: VoteFilter, orderBy: [Order!], limit: Int, skip: Int): [Vote]!
   allTransactions(filter: TransactionFilter, orderBy: [Order!], limit: Int, skip: Int): [Transaction]!
   syncInfo(includeBalance: Boolean): syncInfo!
-  chartInfo: chartInfo!
+  fundRedeemInfo: fundRedeemInfo!
   myOrderInfo: myOrderInfo!
   activeOrderInfo: activeOrderInfo!
   fulfilledOrderInfo: fulfilledOrderInfo!
@@ -218,6 +232,20 @@ type Query {
   buyOrderInfo: buyOrderInfo!
   selectedOrderInfo: selectedOrderInfo!
   marketInfo: marketInfo!
+}
+
+input FundRedeemFilter {
+  OR: [FundRedeemFilter!]
+  txid: String
+  type: String
+  token: String
+  tokenName: String
+  status: String
+  owner: String
+  time: Int
+  date: String
+  amount: String
+  blockNum: Int
 }
 
 input TradeFilter {
@@ -405,7 +433,7 @@ type Mutation {
 
 type Subscription {
   onSyncInfo : syncInfo
-  onChartInfo : chartInfo
+  onFundRedeemInfo : fundRedeemInfo
   onMyOrderInfo : myOrderInfo
   onCanceledOrderInfo : canceledOrderInfo
   onActiveOrderInfo : activeOrderInfo

@@ -370,6 +370,58 @@ function buildTradeFilters({
   return filters;
 }
 
+function buildFundRedeemFilters({
+  OR = [], txid, type, token, tokenName, status, owner, time, date, amount, blockNum
+}) {
+  const filter = (txid || type || token || tokenName || status || owner || time || date || amount || blockNum) ? {} : null;
+
+  if (txid) {
+    filter.txid = txid;
+  }
+
+  if (type) {
+    filter.type = type;
+  }
+
+  if (token) {
+    filter.token = token;
+  }
+
+  if (tokenName) {
+    filter.tokenName = tokenName;
+  }
+
+  if (status) {
+    filter.status = status;
+  }
+
+  if (owner) {
+    filter.owner = owner;
+  }
+
+  if (time) {
+    filter.time = time;
+  }
+
+  if (date) {
+    filter.date = date;
+  }
+
+  if (amount) {
+    filter.amount = amount;
+  }
+
+  if (blockNum) {
+    filter.blockNum = blockNum;
+  }
+
+  let filters = filter ? [filter] : [];
+  for (let i = 0; i < OR.length; i++) {
+    filters = filters.concat(buildTradeFilters(OR[i]));
+  }
+  return filters;
+}
+
 /**
  * Takes an oracle object and returns which phase it is in.
  * @param {oracle} oracle
@@ -401,6 +453,15 @@ module.exports = {
     }, { db: { NewOrder } }) => {
       const query = filter ? { $or: buildNewOrderFilters(filter) } : {};
       let cursor = NewOrder.cfind(query);
+      cursor = buildCursorOptions(cursor, orderBy, limit, skip);
+      return cursor.exec();
+    },
+
+    allFundRedeems: async (root, {
+      filter, orderBy, limit, skip,
+    }, { db: { FundRedeem } }) => {
+      const query = filter ? { $or: buildFundRedeemFilters(filter) } : {};
+      let cursor = FundRedeem.cfind(query);
       cursor = buildCursorOptions(cursor, orderBy, limit, skip);
       return cursor.exec();
     },

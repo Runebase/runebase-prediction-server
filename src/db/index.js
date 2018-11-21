@@ -19,6 +19,7 @@ const db = {
   MarketMaker: undefined,
   OrderFulfilled: undefined,
   Markets: undefined,
+  FundRedeem: undefined,
 };
 
 
@@ -46,6 +47,7 @@ async function initDB() {
   db.MarketMaker = datastore({ filename: `${localCacheDataPath}/marketMaker.db` });
   db.OrderFulfilled = datastore({ filename: `${localCacheDataPath}/orderfulfilled.db` });
   db.Markets = datastore({ filename: `${localCacheDataPath}/markets.db` });
+  db.FundRedeem = datastore({ filename: `${localCacheDataPath}/fundRedeem.db` });
 
   try {
     await Promise.all([
@@ -59,6 +61,7 @@ async function initDB() {
       db.MarketMaker.loadDatabase(),
       db.OrderFulfilled.loadDatabase(),
       db.Markets.loadDatabase(),
+      db.FundRedeem.loadDatabase(),
     ]);
 
     await db.Topics.ensureIndex({ fieldName: 'txid', unique: true });
@@ -91,6 +94,42 @@ async function initDB() {
 function deleteRunebasePredictionData() {
   const logger = getLogger();
   const blockchainDataPath = Utils.getDataDir();
+
+  try {
+    fs.removeSync(`${blockchainDataPath}/fundRedeem.db`);
+  } catch (err) {
+    logger.error(`Delete fundRedeem.db error: ${err.message}`);
+  }
+
+  try {
+    fs.removeSync(`${blockchainDataPath}/markets.db`);
+  } catch (err) {
+    logger.error(`Delete markets.db error: ${err.message}`);
+  }
+
+  try {
+    fs.removeSync(`${blockchainDataPath}/orderfulfilled.db`);
+  } catch (err) {
+    logger.error(`Delete orderfulfilled.db error: ${err.message}`);
+  }
+
+  try {
+    fs.removeSync(`${blockchainDataPath}/marketMaker.db`);
+  } catch (err) {
+    logger.error(`Delete marketMaker.db error: ${err.message}`);
+  }
+
+  try {
+    fs.removeSync(`${blockchainDataPath}/trade.db`);
+  } catch (err) {
+    logger.error(`Delete trade.db error: ${err.message}`);
+  }
+
+  try {
+    fs.removeSync(`${blockchainDataPath}/neworder.db`);
+  } catch (err) {
+    logger.error(`Delete neworder.db error: ${err.message}`);
+  }
 
   try {
     fs.removeSync(`${blockchainDataPath}/topics.db`);
@@ -134,7 +173,6 @@ class DBHelper {
     }
   }
 
-
   /*
   *removeOrdersByQuery
   *
@@ -147,6 +185,36 @@ class DBHelper {
       getLogger().error(`Remove Orders by query:${query}: ${err.message}`);
     }
   }
+
+  /*
+  * Update FundRedeem
+  *
+  */
+  static async updateFundRedeemByQuery(db, query, topic) {
+    try {
+      await db.update(
+        query,
+        {
+          $set: {
+            txid: topic.txid,
+            type: topic.type,
+            token: topic.token,
+            tokenName: topic.tokenName,
+            status: topic.status,
+            owner: topic.owner,
+            time: topic.time,
+            date: topic.date,
+            amount: topic.amount,
+            blockNum: topic.blockNum,
+          },
+        },
+        {},
+      );
+    } catch (err) {
+      getLogger().error(`Error update Topic by query:${query}: ${err.message}`);
+    }
+  }
+
   /*
   * Update Trade
   *
@@ -179,6 +247,7 @@ class DBHelper {
       getLogger().error(`Error update Topic by query:${query}: ${err.message}`);
     }
   }
+
   /*
   * Update Markets
   *
@@ -202,6 +271,7 @@ class DBHelper {
       getLogger().error(`Error update Topic by query:${query}: ${err.message}`);
     }
   }
+
   /*
   * Canceled orders
   *

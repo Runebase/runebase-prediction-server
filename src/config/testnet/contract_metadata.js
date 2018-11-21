@@ -20,6 +20,8 @@ module.exports = {
       OrderFulfilled: 'eb3b41be12efa25c0c65725eeff2e2ad0250e2e5de2aa939e18f36aa656e9880',
       MarketMaker: 'ac476a0560d6039841f7de6a83293b862be45e3182ab744e10e048952fe7e4e3',
       Trade: 'e6f814da7244d1ae6c61b54b5684858ba39cad7b9a91884be10060664987d754',
+      Deposit: 'dcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7',
+      Withdrawal: 'c2b4a290c20fb28939d29f102514fbffd2b73c059ffba8b78250c94161d5fcc6',
     },
     RunebasePredictionToken: {
       pair: 'PRED',

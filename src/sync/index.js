@@ -19,6 +19,7 @@ const CancelOrder = require('../models/cancelOrder');
 const FulfillOrder = require('../models/fulfillOrder');
 const Trade = require('../models/trade');
 const MarketMaker = require('../models/marketMaker');
+const FundRedeem = require('../models/fundRedeem');
 const OrderFulfilled = require('../models/orderFulfilled');
 const CentralizedOracle = require('../models/centralizedOracle');
 const DecentralizedOracle = require('../models/decentralizedOracle');
@@ -114,6 +115,9 @@ async function sync(db) {
 
       await syncTopicCreated(db, startBlock, endBlock, removeHexPrefix);
       getLogger().debug('Synced Topics');
+
+      await syncFundRedeem(db, startBlock, endBlock, removeHexPrefix);
+      getLogger().debug('Synced FundRedeem');
 
       await syncNewOrder(db, startBlock, endBlock, removeHexPrefix);
       getLogger().debug('Synced NewOrder');
@@ -1242,6 +1246,88 @@ async function syncMarkets(db, startBlock, endBlock, removeHexPrefix) {
   });
   createMarketPromises.push(marketDB);
   await Promise.all(createMarketPromises);
+}
+
+async function syncFundRedeem(db, startBlock, endBlock, removeHexPrefix) {
+  let resultFund;
+  let resultRedeem;
+  try {
+    resultFund = await getInstance().searchLogs(
+      startBlock, endBlock, contractMetadata.Radex.address,
+      [contractMetadata.Radex.Deposit], contractMetadata, removeHexPrefix,
+    );
+    getLogger().debug('searchlog syncFund');
+  } catch (err) {
+    getLogger().error(`ERROR: ${err.message}`);
+    return;
+  }
+  try {
+    resultRedeem = await getInstance().searchLogs(
+      startBlock, endBlock, contractMetadata.Radex.address,
+      [contractMetadata.Radex.Withdrawal], contractMetadata, removeHexPrefix,
+    );
+    getLogger().debug('searchlog syncRedeem');
+  } catch (err) {
+    getLogger().error(`ERROR: ${err.message}`);
+    return;
+  }
+  getLogger().debug(`${startBlock} - ${endBlock}: Retrieved ${resultRedeem.length} entries from syncRedeem`);
+  getLogger().debug(`${startBlock} - ${endBlock}: Retrieved ${resultFund.length} entries from syncFund`);
+
+  const createFundPromises = [];
+  const createRedeemPromises = [];
+
+  _.forEach(resultFund, (event, index) => {
+    const blockNum = event.blockNumber;
+    const txid = event.transactionHash;
+    _.forEachRight(event.log, (rawLog) => {
+      console.log(rawLog._eventName);
+      if (rawLog._eventName === 'Deposit') {
+        const fundDB = new Promise(async (resolve) => {
+          try {
+            const fund = new FundRedeem(blockNum, txid, rawLog).translate();
+            if (await DBHelper.getCount(db.FundRedeem, { txid }) > 0) {
+              await DBHelper.updateFundRedeemByQuery(db.FundRedeem, { txid }, fund);
+            } else {
+              await DBHelper.insertTopic(db.FundRedeem, fund)
+            }
+            resolve();
+          } catch (err) {
+            getLogger().error(`ERROR: ${err.message}`);
+            resolve();
+          }
+        });
+        createFundPromises.push(fundDB);
+      }
+    });
+  });
+
+  _.forEach(resultRedeem, (event, index) => {
+    const blockNum = event.blockNumber;
+    const txid = event.transactionHash;
+    _.forEachRight(event.log, (rawLog) => {
+      if (rawLog._eventName === 'Withdrawal') {
+        const redeemDB = new Promise(async (resolve) => {
+          try {
+            const redeem = new FundRedeem(blockNum, txid, rawLog).translate();
+            if (await DBHelper.getCount(db.FundRedeem, { txid }) > 0) {
+              await DBHelper.updateFundRedeemByQuery(db.FundRedeem, { txid }, redeem);
+            } else {
+              await DBHelper.insertTopic(db.FundRedeem, redeem)
+            }
+            resolve();
+          } catch (err) {
+            getLogger().error(`ERROR: ${err.message}`);
+            resolve();
+          }
+        });
+        createRedeemPromises.push(redeemDB);
+      }
+    });
+  });
+
+  await Promise.all(createFundPromises);
+  await Promise.all(createRedeemPromises);
 }
 
 async function syncMarketMaker(db, startBlock, endBlock, removeHexPrefix) {

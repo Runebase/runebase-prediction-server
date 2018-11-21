@@ -23,8 +23,8 @@ class NewOrder {
         if (key !== 'Runebase') {
           this.token = metadata[key].pair;
           this.tokenName = metadata[key].pair;
-        }        
-      }     
+        }
+      }
     }
     if (this.rawLog._sellToken === metadata.Runebase.address) {
       this.type = 'BUYORDER';
@@ -46,7 +46,7 @@ class NewOrder {
     this.startAmount = this.rawLog._amount.toString(10);
     this.amount = this.rawLog._amount.toString(10);
     this.owner = this.rawLog._owner;
-    this.time = this.rawLog._time.toString(10);   
+    this.time = this.rawLog._time.toString(10);
   }
 
   translate() {
@@ -57,7 +57,7 @@ class NewOrder {
       tokenName: this.tokenName,
       orderType: this.orderType,
       price: this.price,
-      status: orderState.ACTIVE,      
+      status: orderState.ACTIVE,
       orderId: this.orderId,
       owner: Decoder.toRunebaseAddress(this.owner, isMainnet()),
       sellToken: this.sellToken,
