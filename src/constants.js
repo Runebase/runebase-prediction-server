@@ -21,6 +21,7 @@ module.exports = {
   },
 
   orderState: {
+    CONFIRMED: 'CONFIRMED',
     PENDING: 'PENDING',
     FAIL: 'FAIL',
     ACTIVE: 'ACTIVE',

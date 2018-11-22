@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const moment = require('moment');
 const math = require('mathjs');
+const BigNumber = require('bignumber.js');
 
 const pubsub = require('../pubsub');
 const { getLogger } = require('../utils/logger');
@@ -15,7 +16,7 @@ const centralizedOracle = require('../api/centralized_oracle');
 const decentralizedOracle = require('../api/decentralized_oracle');
 const { Config, getContractMetadata } = require('../config');
 const { db, DBHelper } = require('../db');
-const { txState, phase, orderState } = require('../constants');
+const { txState, phase, orderState, SATOSHI_CONVERSION } = require('../constants');
 const { calculateSyncPercent, getAddressBalances, getExchangeBalances } = require('../sync');
 const Utils = require('../utils');
 const exchange = require('../api/exchange');
@@ -1106,7 +1107,12 @@ module.exports = {
           throw new Error(`Invalid token transfer type: ${token}`);
         }
       }
-
+      let xAmount
+      if (token == 'RUNES') {
+        xAmount = amount
+      } else {
+        xAmount = new BigNumber(amount).dividedBy(SATOSHI_CONVERSION).toString();
+      }
       // Insert Transaction
       const gasLimit = sentTx ? sentTx.args.gasLimit : Config.DEFAULT_GAS_LIMIT;
       const gasPrice = sentTx ? sentTx.args.gasPrice : Config.DEFAULT_GAS_PRICE;
@@ -1121,12 +1127,12 @@ module.exports = {
         version,
         receiverAddress,
         token,
-        amount,
+        amount: xAmount,
       };
       const deposit = {
         txid,
         type: 'Deposit',
-        status: txState.PENDING,
+        status: orderState.PENDING,
         gasLimit: gasLimit.toString(10),
         gasPrice: gasPrice.toFixed(8),
         time: moment().unix(),
@@ -1135,7 +1141,7 @@ module.exports = {
         receiverAddress,
         token,
         tokenName: token,
-        amount,
+        amount: xAmount,
       };
 
       await DBHelper.insertTopic(db.FundRedeem, deposit);
@@ -1212,7 +1218,12 @@ module.exports = {
           throw new Error(`Invalid token transfer type: ${token}`);
         }
       }
-
+      let xAmount
+      if (token == 'RUNES') {
+        xAmount = amount
+      } else {
+        xAmount = new BigNumber(amount).dividedBy(SATOSHI_CONVERSION).toString();
+      }
       // Insert Transaction
       const gasLimit = sentTx ? sentTx.args.gasLimit : Config.DEFAULT_GAS_LIMIT;
       const gasPrice = sentTx ? sentTx.args.gasPrice : Config.DEFAULT_GAS_PRICE;
@@ -1227,7 +1238,7 @@ module.exports = {
         version,
         receiverAddress,
         token,
-        amount,
+        amount: xAmount,
       };
       const withdrawal = {
         txid,
@@ -1241,7 +1252,7 @@ module.exports = {
         receiverAddress,
         token,
         tokenName: token,
-        amount,
+        amount: xAmount,
       };
       await DBHelper.insertTopic(db.FundRedeem, withdrawal);
       await DBHelper.insertTransaction(Transactions, tx);

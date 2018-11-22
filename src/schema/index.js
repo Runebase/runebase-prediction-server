@@ -161,52 +161,257 @@ type syncInfo {
   addressBalances: [AddressBalance]
 }
 
+# type: FundRedeem
 type fundRedeemInfo {
-  fundRedeemInfo: [FundRedeem]
+  txid: String!
+  type: String!
+  token: String!
+  tokenName: String!
+  status: String!
+  owner: String!
+  time: Int!
+  date: String!
+  amount: String!
+  blockNum: Int
 }
 
+# type: NewOrder
 type myOrderInfo {
-  myOrderInfo: [NewOrder]
+  txid: String!
+  txCanceled: String!
+  txFulfilled: String!
+  timeCanceled: String!
+  timeFulfilled: String!
+  orderId: String!
+  token: String!
+  tokenName: String!
+  orderType: String!
+  type: String!
+  price: String!
+  status: _OrderStatusType!
+  owner: String!
+  sellToken: String!
+  buyToken: String!
+  priceMul: String!
+  priceDiv: String!
+  time: String!
+  amount: String!
+  startAmount: String!
+  blockNum: Int
 }
 
+# type: NewOrder
 type activeOrderInfo {
-  activeOrderInfo: [NewOrder]
+  txid: String!
+  txCanceled: String!
+  txFulfilled: String!
+  timeCanceled: String!
+  timeFulfilled: String!
+  orderId: String!
+  token: String!
+  tokenName: String!
+  orderType: String!
+  type: String!
+  price: String!
+  status: _OrderStatusType!
+  owner: String!
+  sellToken: String!
+  buyToken: String!
+  priceMul: String!
+  priceDiv: String!
+  time: String!
+  amount: String!
+  startAmount: String!
+  blockNum: Int
 }
 
+# type: NewOrder
 type fulfilledOrderInfo {
-  fulfilledOrderInfo: [NewOrder]
+  txid: String!
+  txCanceled: String!
+  txFulfilled: String!
+  timeCanceled: String!
+  timeFulfilled: String!
+  orderId: String!
+  token: String!
+  tokenName: String!
+  orderType: String!
+  type: String!
+  price: String!
+  status: _OrderStatusType!
+  owner: String!
+  sellToken: String!
+  buyToken: String!
+  priceMul: String!
+  priceDiv: String!
+  time: String!
+  amount: String!
+  startAmount: String!
+  blockNum: Int
 }
 
+# type: NewOrder
 type canceledOrderInfo {
-  canceledOrderInfo: [NewOrder]
+  txid: String!
+  txCanceled: String!
+  txFulfilled: String!
+  timeCanceled: String!
+  timeFulfilled: String!
+  orderId: String!
+  token: String!
+  tokenName: String!
+  orderType: String!
+  type: String!
+  price: String!
+  status: _OrderStatusType!
+  owner: String!
+  sellToken: String!
+  buyToken: String!
+  priceMul: String!
+  priceDiv: String!
+  time: String!
+  amount: String!
+  startAmount: String!
+  blockNum: Int
 }
 
+# type: NewOrder
 type buyOrderInfo {
-  buyOrderInfo: [NewOrder]
+  txid: String!
+  txCanceled: String!
+  txFulfilled: String!
+  timeCanceled: String!
+  timeFulfilled: String!
+  orderId: String!
+  token: String!
+  tokenName: String!
+  orderType: String!
+  type: String!
+  price: String!
+  status: _OrderStatusType!
+  owner: String!
+  sellToken: String!
+  buyToken: String!
+  priceMul: String!
+  priceDiv: String!
+  time: String!
+  amount: String!
+  startAmount: String!
+  blockNum: Int
 }
 
+# type: NewOrder
 type sellOrderInfo {
-  sellOrderInfo: [NewOrder]
+  txid: String!
+  txCanceled: String!
+  txFulfilled: String!
+  timeCanceled: String!
+  timeFulfilled: String!
+  orderId: String!
+  token: String!
+  tokenName: String!
+  orderType: String!
+  type: String!
+  price: String!
+  status: _OrderStatusType!
+  owner: String!
+  sellToken: String!
+  buyToken: String!
+  priceMul: String!
+  priceDiv: String!
+  time: String!
+  amount: String!
+  startAmount: String!
+  blockNum: Int
 }
 
-type myTradeInfo {
-  myTradeInfo: [Trade]
-}
-
-type buyHistoryInfo {
-  buyHistoryInfo: [Trade]
-}
-
-type sellHistoryInfo {
-  sellHistoryInfo: [Trade]
-}
-
+# type: NewOrder
 type selectedOrderInfo {
-  selectedOrderInfo: [NewOrder]
+  txid: String!
+  txCanceled: String!
+  txFulfilled: String!
+  timeCanceled: String!
+  timeFulfilled: String!
+  orderId: String!
+  token: String!
+  tokenName: String!
+  orderType: String!
+  type: String!
+  price: String!
+  status: _OrderStatusType!
+  owner: String!
+  sellToken: String!
+  buyToken: String!
+  priceMul: String!
+  priceDiv: String!
+  time: String!
+  amount: String!
+  startAmount: String!
+  blockNum: Int
 }
 
+# type: Trade
+type myTradeInfo {
+  status: String!
+  txid: String!
+  date: String!
+  from: String!
+  to: String!
+  soldTokens: String!
+  boughtTokens: String!
+  tokenName: String!
+  orderType: String!
+  price: String!
+  orderId: String!
+  time: Int
+  amount: String!
+  blockNum: Int
+}
+
+# type: Trade
+type buyHistoryInfo {
+  status: String!
+  txid: String!
+  date: String!
+  from: String!
+  to: String!
+  soldTokens: String!
+  boughtTokens: String!
+  tokenName: String!
+  orderType: String!
+  price: String!
+  orderId: String!
+  time: Int
+  amount: String!
+  blockNum: Int
+}
+
+# type: Trade
+type sellHistoryInfo {
+  status: String!
+  txid: String!
+  date: String!
+  from: String!
+  to: String!
+  soldTokens: String!
+  boughtTokens: String!
+  tokenName: String!
+  orderType: String!
+  price: String!
+  orderId: String!
+  time: Int
+  amount: String!
+  blockNum: Int
+}
+
+# type: Market
 type marketInfo {
-  marketInfo: [Market]
+  market: String!
+  tokenName: String!
+  price: String!
+  change: String!
+  volume: String!
+  orderCount: String!
 }
 
 type Query {

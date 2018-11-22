@@ -11,7 +11,7 @@ const centralizedOracle = require('../api/centralized_oracle');
 const decentralizedOracle = require('../api/decentralized_oracle');
 const { DBHelper } = require('../db');
 const { Config, getContractMetadata } = require('../config');
-const { txState } = require('../constants');
+const { txState, orderState } = require('../constants');
 const Utils = require('../utils');
 
 /* UPDATE FAILED ORDERS */
@@ -19,7 +19,7 @@ const Utils = require('../utils');
 async function updatePendingOrders(db, currentBlockCount) {
   let pendingOrders;
   try {
-    pendingOrders = await db.NewOrder.cfind({ status: txState.PENDING })
+    pendingOrders = await db.NewOrder.cfind({ status: orderState.PENDING })
       .sort({ createdTime: -1 }).exec();
   } catch (err) {
     getLogger().error(`Error: get pending Orders: ${err.message}`);
@@ -45,7 +45,7 @@ async function updateOrder(order, currentBlockCount) {
     const orderInfo = await wallet.getTransaction({ txid: order.txid });
 
     if (orderInfo.confirmations > 0) {
-      order.status = txState.SUCCESS;
+      order.status = orderState.CONFIRMED;
       order.gasUsed = Math.floor(Math.abs(orderInfo.fee) / Config.DEFAULT_GAS_PRICE);
 
       order.blockNum = (currentBlockCount - orderInfo.confirmations) + 1;
@@ -60,11 +60,11 @@ async function updateOrder(order, currentBlockCount) {
   const resp = await blockchain.getTransactionReceipt({ transactionId: order.txid });
 
   if (_.isEmpty(resp)) {
-    order.status = txState.PENDING;
+    order.status = orderState.PENDING;
   } else {
     const blockInfo = await blockchain.getBlock({ blockHash: resp[0].blockHash });
 
-    order.status = _.isEmpty(resp[0].log) ? txState.FAIL : txState.SUCCESS;
+    order.status = _.isEmpty(resp[0].log) ? orderState.FAIL : orderState.CONFIRMED;
     order.gasUsed = resp[0].gasUsed;
     order.blockNum = resp[0].blockNumber;
     order.blockTime = blockInfo.time;
@@ -101,7 +101,7 @@ async function updateOrderDB(order, db) {
 async function updatePendingFundRedeems(db, currentBlockCount) {
   let pendingFundRedeems;
   try {
-    pendingFundRedeems = await db.FundRedeem.cfind({ status: txState.PENDING })
+    pendingFundRedeems = await db.FundRedeem.cfind({ status: orderState.PENDING })
       .sort({ createdTime: -1 }).exec();
   } catch (err) {
     getLogger().error(`Error: get pending FundRedeems: ${err.message}`);
@@ -142,11 +142,11 @@ async function updateFundRedeem(fundRedeem, currentBlockCount) {
   const resp = await blockchain.getTransactionReceipt({ transactionId: fundRedeem.txid });
 
   if (_.isEmpty(resp)) {
-    fundRedeem.status = txState.PENDING;
+    fundRedeem.status = orderState.PENDING;
   } else {
     const blockInfo = await blockchain.getBlock({ blockHash: resp[0].blockHash });
 
-    fundRedeem.status = _.isEmpty(resp[0].log) ? txState.FAIL : txState.SUCCESS;
+    fundRedeem.status = _.isEmpty(resp[0].log) ? orderState.FAIL : orderState.CONFIRMED;
     fundRedeem.gasUsed = resp[0].gasUsed;
     fundRedeem.blockNum = resp[0].blockNumber;
     fundRedeem.blockTime = blockInfo.time;
@@ -183,14 +183,13 @@ async function updateFundRedeemDB(fundRedeem, db) {
 async function updatePendingTrades(db, currentBlockCount) {
   let pendingTrades;
   try {
-    pendingTrades = await db.Trade.cfind({ status: txState.PENDING })
+    pendingTrades = await db.Trade.cfind({ status: orderState.PENDING })
       .sort({ createdTime: -1 }).exec();
   } catch (err) {
     getLogger().error(`Error: get pending Trades: ${err.message}`);
     throw err;
   }
 
-  // TODO(frank): batch to void too many rpc calls
   const updatePromises = [];
   _.each(pendingTrades, (trade) => {
     updatePromises.push(new Promise(async (resolve) => {
@@ -209,7 +208,7 @@ async function updateTrade(trade, currentBlockCount) {
     const tradeInfo = await wallet.getTransaction({ txid: trade.txid });
 
     if (tradeInfo.confirmations > 0) {
-      trade.status = txState.SUCCESS;
+      trade.status = orderState.CONFIRMED;
       trade.gasUsed = Math.floor(Math.abs(tradeInfo.fee) / Config.DEFAULT_GAS_PRICE);
 
       trade.blockNum = (currentBlockCount - tradeInfo.confirmations) + 1;
@@ -224,11 +223,11 @@ async function updateTrade(trade, currentBlockCount) {
   const resp = await blockchain.getTransactionReceipt({ transactionId: trade.txid });
 
   if (_.isEmpty(resp)) {
-    trade.status = txState.PENDING;
+    trade.status = orderState.PENDING;
   } else {
     const blockInfo = await blockchain.getBlock({ blockHash: resp[0].blockHash });
 
-    trade.status = _.isEmpty(resp[0].log) ? txState.FAIL : txState.SUCCESS;
+    trade.status = _.isEmpty(resp[0].log) ? orderState.FAIL : orderState.CONFIRMED;
     trade.gasUsed = resp[0].gasUsed;
     trade.blockNum = resp[0].blockNumber;
     trade.blockTime = blockInfo.time;
@@ -260,32 +259,7 @@ async function updateTradeDB(trade, db) {
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* Prediction Market & Wallet TXs */
 // Fetch Pending TXs
 async function updatePendingTxs(db, currentBlockCount) {
   let pendingTxs;
