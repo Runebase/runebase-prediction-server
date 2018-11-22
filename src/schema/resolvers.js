@@ -417,7 +417,7 @@ function buildFundRedeemFilters({
 
   let filters = filter ? [filter] : [];
   for (let i = 0; i < OR.length; i++) {
-    filters = filters.concat(buildTradeFilters(OR[i]));
+    filters = filters.concat(buildFundRedeemFilters(OR[i]));
   }
   return filters;
 }
@@ -1045,7 +1045,7 @@ module.exports = {
 
       return tx;
     },
-    transferExchange: async (root, data, { db: { Transactions } }) => {
+    transferExchange: async (root, data, { db: { Transactions, FundRedeem } }) => {
       const {
         senderAddress,
         receiverAddress,
@@ -1123,10 +1123,26 @@ module.exports = {
         token,
         amount,
       };
+      const deposit = {
+        txid,
+        type: 'Deposit',
+        status: txState.PENDING,
+        gasLimit: gasLimit.toString(10),
+        gasPrice: gasPrice.toFixed(8),
+        time: moment().unix(),
+        date: new Date(moment().unix()*1000),
+        owner: senderAddress,
+        receiverAddress,
+        token,
+        tokenName: token,
+        amount,
+      };
+
+      await DBHelper.insertTopic(db.FundRedeem, deposit);
       await DBHelper.insertTransaction(Transactions, tx);
       return tx;
     },
-    redeemExchange: async (root, data, { db: { Transactions } }) => {
+    redeemExchange: async (root, data, { db: { Transactions, FundRedeem } }) => {
       const {
         senderAddress,
         receiverAddress,
@@ -1213,6 +1229,21 @@ module.exports = {
         token,
         amount,
       };
+      const withdrawal = {
+        txid,
+        type: 'Withdrawal',
+        status: txState.PENDING,
+        gasLimit: gasLimit.toString(10),
+        gasPrice: gasPrice.toFixed(8),
+        time: moment().unix(),
+        date: new Date(moment().unix()*1000),
+        owner: senderAddress,
+        receiverAddress,
+        token,
+        tokenName: token,
+        amount,
+      };
+      await DBHelper.insertTopic(db.FundRedeem, withdrawal);
       await DBHelper.insertTransaction(Transactions, tx);
       return tx;
     },

@@ -30,14 +30,13 @@ class NewOrder {
     this.owner = this.rawLog._owner;
     this.type = this.rawLog._eventName;
   }
-
   translate() {
     return {
       txid: this.txid,
       type: this.type,
       token: this.token,
       tokenName: this.tokenName,
-      status: 'SUCCESS',
+      status: 'CONFIRMED',
       owner: Decoder.toRunebaseAddress(this.owner, isMainnet()),
       time: this.time,
       date: this.date,

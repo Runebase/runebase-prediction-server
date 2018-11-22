@@ -11,7 +11,7 @@ const BigNumber = require('bignumber.js');
 const { getContractMetadata, isMainnet } = require('../config');
 const { BLOCK_0_TIMESTAMP, SATOSHI_CONVERSION } = require('../constants');
 const { db, DBHelper } = require('../db');
-const updateTxDB = require('./updateLocalTx');
+const updateStatusDB = require('./updateLocalTx');
 
 const Topic = require('../models/topic');
 const NewOrder = require('../models/newOrder');
@@ -108,8 +108,17 @@ async function sync(db) {
   sequentialLoop(
     numOfIterations,
     async (loop) => {
-      await updateTxDB(db, currentBlockCount);
+      await updateStatusDB.updatePendingTxs(db, currentBlockCount);
       getLogger().debug('Tx DB Updated');
+
+      await updateStatusDB.updatePendingOrders(db, currentBlockCount);
+      getLogger().debug('Order DB Updated');
+
+      await updateStatusDB.updatePendingFundRedeems(db, currentBlockCount);
+      getLogger().debug('FundRedeem DB Updated');
+
+      await updateStatusDB.updatePendingTrades(db, currentBlockCount);
+      getLogger().debug('Trades DB Updated');
 
       const endBlock = Math.min((startBlock + BLOCK_BATCH_SIZE) - 1, currentBlockCount);
 
