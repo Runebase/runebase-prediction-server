@@ -1,53 +1,15 @@
-testnet:
+##test-net
+Radex
+ce8723c0a648ff072e858ece57e8d72bcdf6e40f
 
-owner:
-addr
-5ownPHzdbLKkzjLqpQ7YWMHeFkX6ZG3xvm
-hex
-f3cf5095b40898d9e20e0cfad62772c4df2473da
+PRED Token
 
-exchange radex
-hex
-7fe11b3b671e045e8845370e96b8fa63f5833e9a
-addr
-5dNoKDt3fQFKMXeUR21SoappnLg9YEggMU
+FUN token
 
-runes
-0000000000000000000000000000000000000000
+owner
+5moDmKUDfnZyfZ9ynFiuq43n4H7PJdGzk8
 
-pred
-765a2f6cfc9d6a7200a9a32249701a629820b5d3
+##main-net
 
-fun
-33c3c5736bc8b1f04d074f44568c350fe94e865e
 
-exchange etherdelta:
-d8133b1be8da9802d583a03bc2fcced6488356e2
-5mR8ppKQLUPsCTejwSQ2WBXKu7WG4Xpe2J
-2.
-9f478da0de10d43baca1079eccbf617c0cdddf7b
-
-account levels address ether:
-ce7673607b67b6c25763c3c8227f9d0864738e89
-
-randomex
-f3cf5095b40898d9e20e0cfad62772c4df2473da
-
-H343BuRAQncb6qetTthjp2ygTrOD4CgmUGPBbauNHBRUCoxwtzpROWq02PDUA1zGIF4CCtXKjbj4QfzAYVnRthY=
-H343BuRAQncb6qetTthjp2ygTrOD4CgmUGPBbauNHBRUCoxwtzpROWq02PDUA1zGIF4CCtXKjbj4QfzAYVnRthY=
-
-token transfer proxy 
-393a4e152bed0ba4c460e0817ab4f415bbfab37d
-
-0x.js
-b91c34fa8de6dc38e3390795c5536862587aa7d5
-
-forkdelta:  if first time deploy: lastcontract= 0000000000000000000000000000000000000000
-22440e6aaa347f4c55ca0d3541e683a6dd7acaa0
----------
-733648c5432786587ad62cdace382727348baa41
-------------
-
-dextop
-4713632fc8bf4ed670e65e2223972b820f428173
 

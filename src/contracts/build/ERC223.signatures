@@ -5,3 +5,4 @@
 18160ddd: totalSupply()
 a9059cbb: transfer(address,uint256)
 be45fd62: transfer(address,uint256,bytes)
+f6368f8a: transfer(address,uint256,bytes,string)

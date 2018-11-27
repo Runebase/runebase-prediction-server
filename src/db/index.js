@@ -75,6 +75,14 @@ async function initDB() {
       if (metadata[key].pair) {
         if (key !== 'Runebase') {
           const addMarket = metadata[key].pair;
+          const dataSrc = blockchainDataPath + '/' + addMarket + '.tsv';
+          if (!fs.existsSync(dataSrc)){
+            fs.writeFile(dataSrc, 'date\topen\thigh\tlow\tclose\tvolume\n2018-01-01\t0\t0\t0\t0\t0\n2018-01-02\t0\t0\t0\t0\t0', { flag: 'w' }, function(err) {
+              if (err)
+                return console.error(err);
+            });
+          }
+        fs.closeSync(fs.openSync(dataSrc, 'a'));
           db.Markets.count({ market: addMarket }, function (err, count) {
             if (count === 0) {
               const market = new Market(addMarket).translate();

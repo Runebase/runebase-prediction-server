@@ -1,11 +1,10 @@
 #!/bin/bash
 
+echo 'Compiling radex/Radex.sol into /build'
+solc ..=.. --optimize --bin --abi --hashes --allow-paths libs -o build --overwrite radex/Radex.sol
 
-echo 'Compiling FunToken.sol into /build'
-solc ..=.. --optimize --bin --abi --hashes --allow-paths tokens/libs -o build --overwrite tokens/FunToken.sol
+echo 'Compiling PRED.sol into /build'
+solc ..=.. --optimize --bin --abi --hashes --allow-paths tokens/libs -o build --overwrite tokens/PRED.sol
 
-echo 'Compiling radex/radex.sol into /build'
-solc ..=.. --optimize --bin --abi --hashes --allow-paths libs -o build --overwrite radex/contracts/Radex.sol
-
-echo 'Compiling RunebasePredictionToken.sol into /build'
-solc ..=.. --optimize --bin --abi --hashes --allow-paths tokens/libs -o build --overwrite tokens/RunebasePredictionToken.sol
+echo 'Compiling FUN.sol into /build'
+solc ..=.. --optimize --bin --abi --hashes --allow-paths tokens/libs -o build --overwrite tokens/FUN.sol
