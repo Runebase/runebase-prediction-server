@@ -28,7 +28,13 @@ class NewOrder {
     }
     this.token = this.rawLog._token;
     this.owner = this.rawLog._owner;
-    this.type = this.rawLog._eventName;
+    if (this.rawLog._eventName == 'Deposit') {
+      this.type = 'DEPOSITEXCHANGE';
+    }
+    if (this.rawLog._eventName == 'Withdrawal') {
+      this.type = 'WITHDRAWEXCHANGE';
+    }
+
   }
   translate() {
     return {

@@ -12,6 +12,7 @@ const { getContractMetadata, isMainnet } = require('../config');
 const { BLOCK_0_TIMESTAMP, SATOSHI_CONVERSION } = require('../constants');
 const { db, DBHelper } = require('../db');
 const updateStatusDB = require('./updateLocalTx');
+const Utility = require('../utils');
 
 const Topic = require('../models/topic');
 const NewOrder = require('../models/newOrder');
@@ -1055,6 +1056,7 @@ async function addTrade(rawLog, blockNum, txid){
 
 async function syncTrade(db, startBlock, endBlock, removeHexPrefix) {
   let result;
+  const blockchainDataPath = Utility.getDataDir();
   try {
     result = await getInstance().searchLogs(
       startBlock, endBlock, contractMetadata.Radex.address,
@@ -1074,7 +1076,7 @@ async function syncTrade(db, startBlock, endBlock, removeHexPrefix) {
     for (let rawLog of event.log){
       if (rawLog._eventName === 'Trade') {
         const trade = await addTrade(rawLog, blockNum, txid).then(trade => new Promise(async (resolve) => {
-        const dataSrc = isMainnet() ? 'public/Main' + trade.tokenName + '.tsv' : 'public/Test' + trade.tokenName + '.tsv'; ;
+        const dataSrc = blockchainDataPath + '/' + trade.tokenName + '.tsv';
         if (!fs.existsSync(dataSrc)){
           fs.writeFile(dataSrc, 'date\topen\thigh\tlow\tclose\tvolume\n', { flag: 'w' }, function(err) {
             if (err)
@@ -1290,7 +1292,6 @@ async function syncFundRedeem(db, startBlock, endBlock, removeHexPrefix) {
     const blockNum = event.blockNumber;
     const txid = event.transactionHash;
     _.forEachRight(event.log, (rawLog) => {
-      console.log(rawLog._eventName);
       if (rawLog._eventName === 'Deposit') {
         const fundDB = new Promise(async (resolve) => {
           try {

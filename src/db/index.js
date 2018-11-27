@@ -6,7 +6,7 @@ const Utils = require('../utils');
 const { getLogger } = require('../utils/logger');
 const migrateTxDB = require('./migrations/migrateTx');
 const Market = require('../models/market');
-const { getContractMetadata } = require('../config');
+const { getContractMetadata, isMainnet } = require('../config');
 
 const db = {
   Topics: undefined,
@@ -41,13 +41,13 @@ async function initDB() {
   db.Oracles = datastore({ filename: `${blockchainDataPath}/oracles.db` });
   db.Votes = datastore({ filename: `${blockchainDataPath}/votes.db` });
   db.Blocks = datastore({ filename: `${blockchainDataPath}/blocks.db` });
-  db.Transactions = datastore({ filename: `${localCacheDataPath}/transactions.db` });
-  db.NewOrder = datastore({ filename: `${localCacheDataPath}/neworder.db` });
-  db.Trade = datastore({ filename: `${localCacheDataPath}/trade.db` });
-  db.MarketMaker = datastore({ filename: `${localCacheDataPath}/marketMaker.db` });
-  db.OrderFulfilled = datastore({ filename: `${localCacheDataPath}/orderfulfilled.db` });
-  db.Markets = datastore({ filename: `${localCacheDataPath}/markets.db` });
-  db.FundRedeem = datastore({ filename: `${localCacheDataPath}/fundRedeem.db` });
+  db.Transactions = datastore({ filename: `${blockchainDataPath}/transactions.db` });
+  db.NewOrder = datastore({ filename: `${blockchainDataPath}/neworder.db` });
+  db.Trade = datastore({ filename: `${blockchainDataPath}/trade.db` });
+  db.MarketMaker = datastore({ filename: `${blockchainDataPath}/marketMaker.db` });
+  db.OrderFulfilled = datastore({ filename: `${blockchainDataPath}/orderfulfilled.db` });
+  db.Markets = datastore({ filename: `${blockchainDataPath}/markets.db` });
+  db.FundRedeem = datastore({ filename: `${blockchainDataPath}/fundRedeem.db` });
 
   try {
     await Promise.all([
@@ -94,6 +94,18 @@ async function initDB() {
 function deleteRunebasePredictionData() {
   const logger = getLogger();
   const blockchainDataPath = Utils.getDataDir();
+
+  try {
+    fs.removeSync(`${blockchainDataPath}/PRED.tsv`);
+  } catch (err) {
+    logger.error(`Delete PRED.tsv error: ${err.message}`);
+  }
+
+  try {
+    fs.removeSync(`${blockchainDataPath}/FUN.tsv`);
+  } catch (err) {
+    logger.error(`Delete FUN.tsv error: ${err.message}`);
+  }
 
   try {
     fs.removeSync(`${blockchainDataPath}/fundRedeem.db`);

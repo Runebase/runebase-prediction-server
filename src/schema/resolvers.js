@@ -305,12 +305,16 @@ function buildMarketFilters({
 }
 
 function buildTradeFilters({
-  OR = [], txid, xTo, xFrom, status, date, from, to, soldTokens, boughtTokens, tokenName, orderType, price, orderId, time, amount, blockNum
+  OR = [], txid, type, status, date, from, to, soldTokens, boughtTokens, tokenName, orderType, price, orderId, time, amount, blockNum
 }) {
-  const filter = (txid || status || date || from || to || soldTokens || boughtTokens || tokenName || orderType || price || orderId  || time || amount || blockNum) ? {} : null;
+  const filter = (txid || type || status || date || from || to || soldTokens || boughtTokens || tokenName || orderType || price || orderId  || time || amount || blockNum) ? {} : null;
 
   if (txid) {
     filter.txid = txid;
+  }
+
+  if (type) {
+    filter.type = type;
   }
 
   if (status) {
@@ -1116,26 +1120,16 @@ module.exports = {
       // Insert Transaction
       const gasLimit = sentTx ? sentTx.args.gasLimit : Config.DEFAULT_GAS_LIMIT;
       const gasPrice = sentTx ? sentTx.args.gasPrice : Config.DEFAULT_GAS_PRICE;
-      const tx = {
-        txid,
-        type: 'FUNDEXCHANGE',
-        status: txState.PENDING,
-        gasLimit: gasLimit.toString(10),
-        gasPrice: gasPrice.toFixed(8),
-        createdTime: moment().unix(),
-        senderAddress,
-        version,
-        receiverAddress,
-        token,
-        amount: xAmount,
-      };
       const deposit = {
         txid,
-        type: 'Deposit',
+        version,
+        senderAddress,
+        type: 'DEPOSITEXCHANGE',
         status: orderState.PENDING,
         gasLimit: gasLimit.toString(10),
         gasPrice: gasPrice.toFixed(8),
         time: moment().unix(),
+        createdTime: moment().unix(),
         date: new Date(moment().unix()*1000),
         owner: senderAddress,
         receiverAddress,
@@ -1145,8 +1139,7 @@ module.exports = {
       };
 
       await DBHelper.insertTopic(db.FundRedeem, deposit);
-      await DBHelper.insertTransaction(Transactions, tx);
-      return tx;
+      return deposit;
     },
     redeemExchange: async (root, data, { db: { Transactions, FundRedeem } }) => {
       const {
@@ -1227,26 +1220,17 @@ module.exports = {
       // Insert Transaction
       const gasLimit = sentTx ? sentTx.args.gasLimit : Config.DEFAULT_GAS_LIMIT;
       const gasPrice = sentTx ? sentTx.args.gasPrice : Config.DEFAULT_GAS_PRICE;
-      const tx = {
-        txid,
-        type: 'REDEEMEXCHANGE',
-        status: txState.PENDING,
-        gasLimit: gasLimit.toString(10),
-        gasPrice: gasPrice.toFixed(8),
-        createdTime: moment().unix(),
+
+      const withdrawal = {
         senderAddress,
         version,
-        receiverAddress,
-        token,
-        amount: xAmount,
-      };
-      const withdrawal = {
         txid,
-        type: 'Withdrawal',
+        type: 'WITHDRAWEXCHANGE',
         status: txState.PENDING,
         gasLimit: gasLimit.toString(10),
         gasPrice: gasPrice.toFixed(8),
         time: moment().unix(),
+        createdTime: moment().unix(),
         date: new Date(moment().unix()*1000),
         owner: senderAddress,
         receiverAddress,
@@ -1255,8 +1239,7 @@ module.exports = {
         amount: xAmount,
       };
       await DBHelper.insertTopic(db.FundRedeem, withdrawal);
-      await DBHelper.insertTransaction(Transactions, tx);
-      return tx;
+      return withdrawal;
     },
     orderExchange: async (root, data, { db: { Transactions } }) => {
       const {
@@ -1355,7 +1338,6 @@ module.exports = {
         priceDiv: priceFractD,
       };
       await DBHelper.insertTopic(db.NewOrder, tx);
-      await DBHelper.insertTransaction(Transactions, tx);
       return tx;
     },
     cancelOrderExchange: async (root, data, { db: { Transactions } }) => {
@@ -1383,13 +1365,10 @@ module.exports = {
       // Insert Transaction
       const gasLimit = sentTx ? sentTx.args.gasLimit : Config.DEFAULT_GAS_LIMIT;
       const gasPrice = sentTx ? sentTx.args.gasPrice : Config.DEFAULT_GAS_PRICE;
+
       const NewOrder = {
-        status: 'PENDINGCANCEL',
-        orderId: orderId,
-        type: 'CANCELORDER',
-      }
-      const tx = {
         txid,
+        orderId: orderId,
         type: 'CANCELORDER',
         version,
         status: 'PENDINGCANCEL',
@@ -1400,8 +1379,7 @@ module.exports = {
         receiverAddress: exchangeAddress,
       };
       await DBHelper.cancelOrderByQuery(db.NewOrder, { orderId }, NewOrder);
-      await DBHelper.insertTransaction(Transactions, tx);
-      return tx;
+      return NewOrder;
     },
     executeOrderExchange: async (root, data, { db: { Transactions } }) => {
       const {
@@ -1429,18 +1407,6 @@ module.exports = {
       // Insert Transaction
       const gasLimit = sentTx ? sentTx.args.gasLimit : Config.DEFAULT_GAS_LIMIT;
       const gasPrice = sentTx ? sentTx.args.gasPrice : Config.DEFAULT_GAS_PRICE;
-      const tx = {
-        txid,
-        type: 'EXECUTEORDER',
-        version,
-        exchangeAmount,
-        status: 'PENDING',
-        gasLimit: gasLimit.toString(10),
-        gasPrice: gasPrice.toFixed(8),
-        createdTime: moment().unix(),
-        senderAddress,
-        receiverAddress: exchangeAddress,
-      };
       const getOrder = await DBHelper.findOne(db.NewOrder, { orderId });
 
       let xPrice;
@@ -1455,8 +1421,17 @@ module.exports = {
       }
       const trade = {
         date: new Date(moment().unix()*1000),
+        type: getOrder.orderType,
         txid,
+        type: 'EXECUTEORDER',
         status: 'PENDING',
+        version,
+        exchangeAmount,
+        gasLimit: gasLimit.toString(10),
+        gasPrice: gasPrice.toFixed(8),
+        createdTime: moment().unix(),
+        senderAddress,
+        receiverAddress: exchangeAddress,
         orderId,
         time: moment().unix(),
         from: senderAddress,
@@ -1470,8 +1445,7 @@ module.exports = {
         blockNum: 0,
       }
       await DBHelper.insertTopic(db.Trade, trade)
-      await DBHelper.insertTransaction(Transactions, tx);
-      return tx;
+      return trade;
     },
   },
 

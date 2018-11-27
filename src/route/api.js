@@ -15,7 +15,6 @@ const Transaction = require('../api/transaction');
 const RunebaseUtils = require('../api/runebase_utils');
 const EmitterHelper = require('../utils/emitterHelper');
 const { getInstance } = require('../qclient');
-
 const apiRouter = new Router();
 
 
@@ -28,11 +27,6 @@ function onRequestError(res, err, next) {
   res.send(500, { error: err.message });
   next();
 }
-
-apiRouter.get(/\/?.*/, restify.plugins.serveStatic({
-  directory: './public',
-  default: 'index.html'
-}))
 
 /* Misc */
 apiRouter.post('/is-connected', (req, res, next) => {

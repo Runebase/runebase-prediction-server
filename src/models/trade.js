@@ -37,6 +37,7 @@ class Trade {
   translate() {
     return {
       date: this.date,
+      type: this.orderType,
       txid: this.txid,
       status: 'CONFIRMED',
       orderId: this.orderId,

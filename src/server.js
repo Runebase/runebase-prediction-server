@@ -6,7 +6,7 @@ const { execute, subscribe } = require('graphql');
 const { SubscriptionServer } = require('subscriptions-transport-ws');
 const fetch = require('node-fetch');
 const portscanner = require('portscanner');
-
+var Router = require('restify-router').Router;
 const { execFile } = require('./constants');
 const {
   Config, setRunebaseEnv, getRunebasePath, isMainnet, getRPCPassword,
@@ -20,6 +20,7 @@ const apiRouter = require('./route/api');
 const { startSync } = require('./sync');
 const { getInstance } = require('./qclient');
 const Wallet = require('./api/wallet');
+const Utils = require('./utils');
 
 const walletEncryptedMessage = 'Your wallet is encrypted. Please use a non-encrypted wallet for the server.';
 
@@ -252,6 +253,14 @@ async function startAPI() {
 
   syncRouter.applyRoutes(server);
   apiRouter.applyRoutes(server);
+
+  const blockchainDataPath = Utils.getDataDir();
+  const routerInstance = new Router();
+  routerInstance.get(/\/?.*/, restify.plugins.serveStatic({
+    directory: blockchainDataPath,
+    default: 'index.html'
+  }))
+  routerInstance.applyRoutes(server);
 
   server.listen(Config.PORT, () => {
     SubscriptionServer.create(

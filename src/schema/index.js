@@ -42,7 +42,7 @@ type FundRedeem {
   type: String!
   token: String!
   tokenName: String!
-  status: String!
+  status: _FundRedeemStatusType!
   owner: String!
   time: Int!
   date: String!
@@ -51,7 +51,8 @@ type FundRedeem {
 }
 
 type Trade {
-  status: String!
+  status: _TradeStatusType!
+  type: String!
   txid: String!
   date: String!
   from: String!
@@ -65,6 +66,9 @@ type Trade {
   time: Int
   amount: String!
   blockNum: Int
+  gasLimit: String!
+  gasPrice: String!
+  gasUsed: Int
 }
 
 type Topic {
@@ -167,7 +171,7 @@ type fundRedeemInfo {
   type: String!
   token: String!
   tokenName: String!
-  status: String!
+  status: _FundRedeemStatusType!
   owner: String!
   time: Int!
   date: String!
@@ -352,7 +356,7 @@ type selectedOrderInfo {
 
 # type: Trade
 type myTradeInfo {
-  status: String!
+  status: _TradeStatusType!
   txid: String!
   date: String!
   from: String!
@@ -361,6 +365,7 @@ type myTradeInfo {
   boughtTokens: String!
   tokenName: String!
   orderType: String!
+  type: String!
   price: String!
   orderId: String!
   time: Int
@@ -370,7 +375,7 @@ type myTradeInfo {
 
 # type: Trade
 type buyHistoryInfo {
-  status: String!
+  status: _TradeStatusType!
   txid: String!
   date: String!
   from: String!
@@ -379,6 +384,7 @@ type buyHistoryInfo {
   boughtTokens: String!
   tokenName: String!
   orderType: String!
+  type: String!
   price: String!
   orderId: String!
   time: Int
@@ -388,7 +394,7 @@ type buyHistoryInfo {
 
 # type: Trade
 type sellHistoryInfo {
-  status: String!
+  status: _TradeStatusType!
   txid: String!
   date: String!
   from: String!
@@ -397,6 +403,7 @@ type sellHistoryInfo {
   boughtTokens: String!
   tokenName: String!
   orderType: String!
+  type: String!
   price: String!
   orderId: String!
   time: Int
@@ -445,7 +452,7 @@ input FundRedeemFilter {
   type: String
   token: String
   tokenName: String
-  status: String
+  status: _FundRedeemStatusType
   owner: String
   time: Int
   date: String
@@ -455,7 +462,8 @@ input FundRedeemFilter {
 
 input TradeFilter {
   OR: [TradeFilter!]
-  status: String
+  status: _TradeStatusType
+  type: String
   txid: String
   from: String
   to: String
@@ -699,6 +707,18 @@ enum _OrderStatusType {
   PENDINGCANCEL
 }
 
+enum _FundRedeemStatusType {
+  CONFIRMED
+  PENDING
+  FAIL
+}
+
+enum _TradeStatusType {
+  CONFIRMED
+  PENDING
+  FAIL
+}
+
 enum _TokenType {
   RUNES
   PRED
@@ -723,8 +743,8 @@ enum _TransactionType {
   WITHDRAW
   WITHDRAWESCROW
   TRANSFER
-  FUNDEXCHANGE
-  REDEEMEXCHANGE
+  DEPOSITEXCHANGE
+  WITHDRAWEXCHANGE
   BUYORDER
   SELLORDER
   CANCELORDER

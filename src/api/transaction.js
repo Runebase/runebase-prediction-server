@@ -42,7 +42,13 @@ const Transaction = {
       || type === 'BET'
       || type === 'APPROVESETRESULT'
       || type === 'APPROVEVOTE'
-      || type === 'TRANSFER')
+      || type === 'TRANSFER'
+      || type === 'CANCELORDER'
+      || type === 'EXECUTEORDER'
+      || type === 'BUYORDER'
+      || type === 'SELLORDER'
+      || type === 'WITHDRAWEXCHANGE'
+      || type === 'DEPOSITEXCHANGE')
       && (!token || !amount)) {
       throw new TypeError('token and amount need to be defined');
     }
@@ -155,9 +161,59 @@ const Transaction = {
         });
         break;
       }
-      case 'FUNDEXCHANGE': {
+      case 'WITHDRAWEXCHANGE': {
         costsArr.push({
-          type: 'fundexchange',
+          type: 'withdrawExchange',
+          gasLimit: Config.DEFAULT_GAS_LIMIT,
+          gasCost: DEFAULT_GAS_COST,
+          token,
+          amount,
+        });
+        break;
+      }
+      case 'DEPOSITEXCHANGE': {
+        costsArr.push({
+          type: 'depositExchange',
+          gasLimit: Config.DEFAULT_GAS_LIMIT,
+          gasCost: DEFAULT_GAS_COST,
+          token,
+          amount,
+        });
+        break;
+      }
+      case 'EXECUTEORDER': {
+        costsArr.push({
+          type: 'executeOrder',
+          gasLimit: Config.DEFAULT_GAS_LIMIT,
+          gasCost: DEFAULT_GAS_COST,
+          token,
+          amount,
+        });
+        break;
+      }
+      case 'CANCELORDER': {
+        costsArr.push({
+          type: 'cancelOrder',
+          gasLimit: Config.DEFAULT_GAS_LIMIT,
+          gasCost: DEFAULT_GAS_COST,
+          token,
+          amount,
+        });
+        break;
+      }
+      case 'BUYORDER': {
+        costsArr.push({
+          type: 'buyOrder',
+          gasLimit: Config.DEFAULT_GAS_LIMIT,
+          gasCost: DEFAULT_GAS_COST,
+          token,
+          amount,
+        });
+        break;
+      }
+      case 'SELLORDER': {
+        costsArr.push({
+          type: 'sellOrder',
           gasLimit: Config.DEFAULT_GAS_LIMIT,
           gasCost: DEFAULT_GAS_COST,
           token,
