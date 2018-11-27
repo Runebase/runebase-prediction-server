@@ -6,7 +6,7 @@ const Utils = require('../utils');
 const { getLogger } = require('../utils/logger');
 const migrateTxDB = require('./migrations/migrateTx');
 const Market = require('../models/market');
-const { getContractMetadata, isMainnet } = require('../config');
+const { getContractMetadata } = require('../config');
 
 const db = {
   Topics: undefined,

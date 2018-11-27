@@ -1,10 +1,10 @@
 {
-  "name": "runebase-prediction-server",
-  "description": "Server that parses, stores, sends, and receives runebase-prediction related data from the blockchain.",
-  "author": "bodhi.network",
+  "name": "runebase-home-server",
+  "description": "Server that parses, stores, sends, and receives runebase-home related data from the blockchain.",
+  "author": "runebase",
   "license": "LGPL-3.0",
-  "version": "0.9.0-c0-d3",
-  "repository": "git@github.com:runebase/runebase-prediction-server.git",
+  "version": "0.0.1",
+  "repository": "git@github.com:runebase/runebase-home-server.git",
   "keywords": [
     "bodhi",
     "server",
