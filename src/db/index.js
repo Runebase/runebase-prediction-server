@@ -82,7 +82,7 @@ async function initDB() {
                 return console.error(err);
             });
           }
-        fs.closeSync(fs.openSync(dataSrc, 'a'));
+          fs.closeSync(fs.openSync(dataSrc, 'a'));
           db.Markets.count({ market: addMarket }, function (err, count) {
             if (count === 0) {
               const market = new Market(addMarket).translate();
