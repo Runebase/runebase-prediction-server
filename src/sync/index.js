@@ -998,7 +998,6 @@ async function syncOrderFulfilled(db, startBlock, endBlock, removeHexPrefix) {
             const fulfillOrder = new FulfillOrder(blockNum, txid, rawLog).translate();
             const orderId = fulfillOrder.orderId;
             await DBHelper.updateFulfilledOrdersByQuery(db.NewOrder, { orderId }, fulfillOrder);
-            //await DBHelper.removeOrdersByQuery(db.NewOrder, { orderId: fulfillOrder.orderId });
             resolve();
           } catch (err) {
             getLogger().error(`ERROR: ${err.message}`);

@@ -1,3 +1,5 @@
+dd62ed3e: allowance(address,address)
+095ea7b3: approve(address,uint256)
 70a08231: balanceOf(address)
 313ce567: decimals()
 06fdde03: name()
@@ -6,3 +8,4 @@
 a9059cbb: transfer(address,uint256)
 be45fd62: transfer(address,uint256,bytes)
 f6368f8a: transfer(address,uint256,bytes,string)
+23b872dd: transferFrom(address,address,uint256)
