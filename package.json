@@ -3,7 +3,7 @@
   "description": "Server that parses, stores, sends, and receives runebase-home related data from the blockchain.",
   "author": "runebase",
   "license": "LGPL-3.0",
-  "version": "0.9.0-c0-d3",
+  "version": "0.0.1-c0-d0",
   "repository": "git@github.com:runebase/runebase-prediction-server.git",
   "keywords": [
     "bodhi",
@@ -16,7 +16,7 @@
   "scripts": {
     "start-test-mon": "nodemon src/index.js --testnet --dev --encryptok --passphrase=xxx --runebasepath=./runebase/linux64/bin --rpcpassword=runebaseprediction",
     "start-test": "node src/index.js --testnet --dev --encryptok --passphrase=xxx --runebasepath=./runebase/linux64/bin --rpcpassword=runebaseprediction",
-    "start-main": "node src/index.js --mainnet --dev --passphrase=xxx --runebasepath=./runebase/linux64/bin --rpcpassword=runebaseprediction",
+    "start-main": "node src/index.js --mainnet --dev --passphrase=Wat123 --runebasepath=./runebase/linux64/bin --rpcpassword=runebaseprediction",
     "test": "mocha --recursive src/**/*.tests.js --timeout 10000 --rpcpassword=runebaseprediction --test --runebasepath=/home/bago/runebase-prediction-server/runebase/linux64/bin",
     "lint:fix": "eslint --fix -- src/."
   },

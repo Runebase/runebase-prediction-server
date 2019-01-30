@@ -35,7 +35,7 @@ function getBaseDataDir() {
       throw Error(`Operating system not supported: ${process.platform}`);
     }
   }
-  osDataDir += '/RunebasePrediction';
+  osDataDir += '/RunebaseSolBeta';
 
   const pathPrefix = isMainnet() ? 'mainnet' : 'testnet';
   let basePath = `${osDataDir}/${pathPrefix}`;

@@ -77,7 +77,7 @@ async function initDB() {
           const addMarket = metadata[key].pair;
           const dataSrc = blockchainDataPath + '/' + addMarket + '.tsv';
           if (!fs.existsSync(dataSrc)){
-            fs.writeFile(dataSrc, 'date\topen\thigh\tlow\tclose\tvolume\n2018-01-01\t0\t0\t0\t0\t0\n2018-01-02\t0\t0\t0\t0\t0', { flag: 'w' }, function(err) {
+            fs.writeFile(dataSrc, 'date\topen\thigh\tlow\tclose\tvolume\n2018-01-01\t0\t0\t0\t0\t0\n2018-01-02\t0\t0\t0\t0\t0\n', { flag: 'w' }, function(err) {
               if (err)
                 return console.error(err);
             });
