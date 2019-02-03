@@ -41,7 +41,7 @@ async function initDB() {
   db.Oracles = datastore({ filename: `${blockchainDataPath}/oracles.db` });
   db.Votes = datastore({ filename: `${blockchainDataPath}/votes.db` });
   db.Blocks = datastore({ filename: `${blockchainDataPath}/blocks.db` });
-  db.Transactions = datastore({ filename: `${blockchainDataPath}/transactions.db` });
+  db.Transactions = datastore({ filename: `${localCacheDataPath}/transactions.db` });
   db.NewOrder = datastore({ filename: `${blockchainDataPath}/neworder.db` });
   db.Trade = datastore({ filename: `${blockchainDataPath}/trade.db` });
   db.MarketMaker = datastore({ filename: `${blockchainDataPath}/marketMaker.db` });
