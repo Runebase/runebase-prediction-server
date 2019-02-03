@@ -1,6 +1,6 @@
 {
-  "name": "runebase-home-server",
-  "description": "Server that parses, stores, sends, and receives runebase-home related data from the blockchain.",
+  "name": "runebase-prediction-server",
+  "description": "Server that parses, stores, sends, and receives runebase-prediction related data from the blockchain.",
   "author": "runebase",
   "license": "LGPL-3.0",
   "version": "0.0.1-c0-d0",
