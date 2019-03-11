@@ -1,0 +1,70 @@
+{
+  "name": "bodhi-server",
+  "description": "Server that parses, stores, sends, and receives Bodhi-related data from the blockchain.",
+  "author": "bodhi.network",
+  "license": "LGPL-3.0",
+  "version": "1.0.0",
+  "repository": "git@github.com:bodhiproject/bodhi-server.git",
+  "keywords": [
+    "bodhi",
+    "server",
+    "api",
+    "graphql",
+    "db"
+  ],
+  "main": "src/index.js",
+  "scripts": {
+    "regtest:local": "node src/index.js --chain=regtest --dev --local --runebasepath=./runebase/linux64/bin --rpcpassword=bodhi",
+    "testnet:local": "node src/index.js --chain=testnet --dev --local --runebasepath=./runebase/linux64/bin --rpcpassword=bodhi",
+    "mainnet:local": "node src/index.js --chain=mainnet --dev --local --runebasepath=./runebase/linux64/bin --rpcpassword=bodhi",
+    "regtest:stage": "node src/index.js --chain=regtest --dev",
+    "testnet:stage": "node src/index.js --chain=testnet --dev",
+    "mainnet:stage": "node src/index.js --chain=mainnet --dev",
+    "testnet:prod": "node src/index.js --chain=testnet",
+    "mainnet:prod": "node src/index.js --chain=mainnet",
+    "test": "mocha --recursive src/**/*.tests.js --timeout 10000 --rpcpassword=bodhi --test",
+    "lint:fix": "eslint --fix -- src/."
+  },
+  "dependencies": {
+    "apollo-server": "^2.0.4",
+    "apollo-server-express": "^2.0.3",
+    "axios": "^0.18.0",
+    "babel-polyfill": "^6.26.0",
+    "bignumber.js": "^7.2.1",
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "dotenv": "^6.0.0",
+    "express": "^4.16.3",
+    "express-winston": "^2.5.1",
+    "fs-extra": "^6.0.1",
+    "graphql": "^0.13.2",
+    "graphql-subscriptions": "^0.5.5",
+    "helmet": "^3.13.0",
+    "lodash": "^4.17.4",
+    "moment": "^2.22.2",
+    "nedb-promise": "^2.0.1",
+    "portscanner": "^2.1.1",
+    "rweb3": "^0.8.0",
+    "subscriptions-transport-ws": "^0.9.9",
+    "web3-utils": "^1.0.0-beta.26",
+    "winston": "^2.4.0",
+    "winston-daily-rotate-file": "^3.2.1",
+    "winston-papertrail": "^1.0.5"
+  },
+  "devDependencies": {
+    "eslint": "^4.16.0",
+    "eslint-config-airbnb": "^16.1.0",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-jsx-a11y": "^6.0.3",
+    "eslint-plugin-react": "^7.5.1",
+    "mocha": "^5.2.0",
+    "nodemon": "^1.17.5"
+  },
+  "authors": [
+    {
+      "name": "Deric Walintukan",
+      "email": "deric@bodhi.network",
+      "url": "https://www.bodhi.network/"
+    }
+  ]
+}
