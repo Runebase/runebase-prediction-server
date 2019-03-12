@@ -84,9 +84,9 @@ services:
 
 secrets:
   privkey.pem:
-    file: /etc/letsencrypt/live/puti.io/privkey.pem
+    file: /etc/letsencrypt/live/runebase.io/privkey.pem
   fullchain.pem:
-    file: /etc/letsencrypt/live/puti.io/fullchain.pem
+    file: /etc/letsencrypt/live/runebase.io/fullchain.pem
 
 volumes:
   bodhi-mainnet:

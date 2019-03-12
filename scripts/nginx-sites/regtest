@@ -1,6 +1,6 @@
 server {
     listen 80;
-    server_name test.puti.io;
+    server_name regpred.runebase.io;
     root /var/www/runebaseprediction/regtest;
     index index.html index.htm;
 

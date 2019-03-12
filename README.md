@@ -77,8 +77,8 @@ You can specify certain attributes in a `.env` file at the root folder. `RUNEBAS
     RUNEBASE_PATH=./runebase/linux64/bin
     RUNEBASE_DATA_DIR=/path/to/runebase/data/dir
     DATA_DIR=/path/to/bodhi/data/dir
-    SSL_KEY_PATH=/etc/letsencrypt/live/puti.io/privkey.pem
-    SSL_CERT_PATH=/etc/letsencrypt/live/puti.io/fullchain.pem
+    SSL_KEY_PATH=/etc/letsencrypt/live/runebase.io/privkey.pem
+    SSL_CERT_PATH=/etc/letsencrypt/live/runebase.io/fullchain.pem
     LOG_LEVEL=debug
 
 # First Time Remote Server Setup
