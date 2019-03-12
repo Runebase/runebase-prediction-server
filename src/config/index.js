@@ -6,9 +6,9 @@ const { BLOCKCHAIN_ENV } = require('../constants');
 const mainnetMetadata = require('./mainnet/contract-metadata');
 const testnetMetadata = require('./testnet/contract-metadata');
 
-const API_PORT_MAINNET = 8989;
-const API_PORT_TESTNET = 6767;
-const API_PORT_REGTEST = 5555;
+const API_PORT_MAINNET = 8990;
+const API_PORT_TESTNET = 6768;
+const API_PORT_REGTEST = 5556;
 
 const EXPLORER_MAINNET = 'https://explorer.runebase.io';
 const EXPLORER_TESTNET = 'https://testnet.runebase.io';
