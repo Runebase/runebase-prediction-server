@@ -3,7 +3,7 @@
 // Use the contract version number as the object key
 module.exports = {
   0: {
-    contractDeployedBlock: 60000,
+    contractDeployedBlock: 148000,
     Runebase: {
       pair: 'RUNES',
       address: '0000000000000000000000000000000000000000',
