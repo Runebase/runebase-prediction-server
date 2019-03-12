@@ -1,18 +1,18 @@
 #!/bin/bash
 
-mkdir -p /root/.bodhi/mainnet/archive
-mkdir -p /root/.bodhi/testnet/archive
+mkdir -p /root/.runebaseprediction/mainnet/archive
+mkdir -p /root/.runebaseprediction/testnet/archive
 
-echo 'Backing up Bodhi DB Mainnet...'
-cd /root/.bodhi/mainnet/archive
-zip -r "bodhiarchive-$(date +"%Y-%m-%d").zip" /var/lib/docker/volumes/bodhi-server_bodhi-mainnet/_data/.bodhi
+echo 'Backing up RunebasePrediction DB Mainnet...'
+cd /root/.runebaseprediction/mainnet/archive
+zip -r "runebasepredictionarchive-$(date +"%Y-%m-%d").zip" /var/lib/docker/volumes/runebaseprediction-server_runebaseprediction-mainnet/_data/.runebaseprediction
 
 echo 'Removing Mainnet archives older than 14 days...'
-find /root/.bodhi/mainnet/archive -mindepth 1 -mtime +14 -delete
+find /root/.runebaseprediction/mainnet/archive -mindepth 1 -mtime +14 -delete
 
-echo 'Backing up Bodhi DB Testnet...'
-cd /root/.bodhi/testnet/archive
-zip -r "bodhiarchive-$(date +"%Y-%m-%d").zip" /var/lib/docker/volumes/bodhi-server_bodhi-testnet/_data/.bodhi
+echo 'Backing up RunebasePrediction DB Testnet...'
+cd /root/.runebaseprediction/testnet/archive
+zip -r "runebasepredictionarchive-$(date +"%Y-%m-%d").zip" /var/lib/docker/volumes/runebaseprediction-server_runebaseprediction-testnet/_data/.runebaseprediction
 
 echo 'Removing Testnet archives older than 14 days...'
-find /root/.bodhi/testnet/archive -mindepth 1 -mtime +14 -delete
+find /root/.runebaseprediction/testnet/archive -mindepth 1 -mtime +14 -delete

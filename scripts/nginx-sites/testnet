@@ -1,7 +1,7 @@
 server {
     listen 80;
     server_name dev.puti.io;
-    root /var/www/bodhi/testnet;
+    root /var/www/runebaseprediction/testnet;
     index index.html index.htm;
 
     location / {
