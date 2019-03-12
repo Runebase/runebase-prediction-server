@@ -9,9 +9,9 @@ services:
     ports:
       - "8989:8989"
     environment:
-      - QTUM_PATH=./qtum/linux64/bin
-      - QTUM_DATA_DIR=/root/.dockervol/.qtum
-      - DATA_DIR=/root/.dockervol/.bodhi
+      - RUNEBASE_PATH=./runebase/linux64/bin
+      - RUNEBASE_DATA_DIR=/root/.dockervol/.runebase
+      - DATA_DIR=/root/.dockervol/.runebaseprediction
       - SSL_KEY_PATH=/run/secrets/privkey.pem
       - SSL_CERT_PATH=/run/secrets/fullchain.pem
       - LOG_LEVEL=debug
@@ -36,9 +36,9 @@ services:
     ports:
       - "6767:6767"
     environment:
-      - QTUM_PATH=./qtum/linux64/bin
-      - QTUM_DATA_DIR=/root/.dockervol/.qtum
-      - DATA_DIR=/root/.dockervol/.bodhi
+      - RUNEBASE_PATH=./runebase/linux64/bin
+      - RUNEBASE_DATA_DIR=/root/.dockervol/.runebase
+      - DATA_DIR=/root/.dockervol/.runebaseprediction
       - SSL_KEY_PATH=/run/secrets/privkey.pem
       - SSL_CERT_PATH=/run/secrets/fullchain.pem
       - LOG_LEVEL=debug
@@ -63,9 +63,9 @@ services:
   #   ports:
   #     - "5555:5555"
   #   environment:
-  #     - QTUM_PATH=./qtum/linux64/bin
-  #     - QTUM_DATA_DIR=/root/.dockervol/.qtum
-  #     - DATA_DIR=/root/.dockervol/.bodhi
+  #     - RUNEBASE_PATH=./runebase/linux64/bin
+  #     - RUNEBASE_DATA_DIR=/root/.dockervol/.runebase
+  #     - DATA_DIR=/root/.dockervol/.runebaseprediction
   #     - SSL_KEY_PATH=/run/secrets/privkey.pem
   #     - SSL_CERT_PATH=/run/secrets/fullchain.pem
   #     - LOG_LEVEL=debug

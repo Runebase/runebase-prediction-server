@@ -2,17 +2,17 @@
 
 # Prerequisites
 1. Node 10 installed
-2. You will need the Qtum client for the OS you are testing on (or building against). Download the [Qtum client](https://github.com/qtumproject/qtum/releases) for the correct OS and put the `bin/` folder in the corresponding dir:
+2. You will need the Runebase client for the OS you are testing on (or building against). Download the [Runebase client](https://github.com/runebase/runebase/releases) for the correct OS and put the `bin/` folder in the corresponding dir:
 
-        bodhi-server/qtum/mac/bin         qtum-0.14.16-osx64.tar.gz 
-        bodhi-server/qtum/win64/bin       qtum-0.14.16-win64.zip
-        bodhi-server/qtum/win32/bin       qtum-0.14.16-win32.zip
-        bodhi-server/qtum/linux64/bin     qtum-0.14.16-x86_64-linux-gnu.tar.gz
-        bodhi-server/qtum/linux32/bin     qtum-0.14.16-i686-pc-linux-gnu.tar.gz
+        runebase-prediction-server/runebase/mac/bin         runebase-0.14.16-osx64.tar.gz 
+        runebase-prediction-server/runebase/win64/bin       runebase-0.14.16-win64.zip
+        runebase-prediction-server/runebase/win32/bin       runebase-0.14.16-win32.zip
+        runebase-prediction-server/runebase/linux64/bin     runebase-0.14.16-x86_64-linux-gnu.tar.gz
+        runebase-prediction-server/runebase/linux32/bin     runebase-0.14.16-i686-pc-linux-gnu.tar.gz
 
 # Install
-1. `git clone https://github.com/bodhiproject/bodhi-server.git`
-2. `cd bodhi-server`
+1. `git clone https://github.com/runebase/runebase-prediction-server.git`
+2. `cd runebase-prediction-server`
 3. `npm install`
 
 # Running Server
@@ -22,8 +22,8 @@
     --dev                       // Runs development environment. /dev data dir and no Papertrail logging.
     --local                     // Disables SSL for HTTP and WS connections
     --chain=testnet             // Set blockchain network: [mainnet, testnet, regtest]
-    --rpcpassword=myPassword    // Force starting qtumd with this rpc pw
-    --qtumpath=/path/to/bin     // Path to the qtumd binaries
+    --rpcpassword=myPassword    // Force starting runebased with this rpc pw
+    --runebasepath=/path/to/bin     // Path to the runebased binaries
     --passphrase=myPassphrase   // Passphrase used to unlock the your wallet
 
 ### Local
@@ -72,10 +72,10 @@
     docker-compose stop
 
 # Environment Setup
-You can specify certain attributes in a `.env` file at the root folder. `QTUM_PATH` in `.env` will take priority over the flag `--qtumpath=/path/to/bin`.
+You can specify certain attributes in a `.env` file at the root folder. `RUNEBASE_PATH` in `.env` will take priority over the flag `--runebasepath=/path/to/bin`.
 
-    QTUM_PATH=./qtum/linux64/bin
-    QTUM_DATA_DIR=/path/to/qtum/data/dir
+    RUNEBASE_PATH=./runebase/linux64/bin
+    RUNEBASE_DATA_DIR=/path/to/runebase/data/dir
     DATA_DIR=/path/to/bodhi/data/dir
     SSL_KEY_PATH=/etc/letsencrypt/live/puti.io/privkey.pem
     SSL_CERT_PATH=/etc/letsencrypt/live/puti.io/fullchain.pem
@@ -99,7 +99,7 @@ This is meant to be setup on an Linux-based OS. This will remove the default con
 
 # GraphQL
 To view the entire schema, go to:
-- Go to the GraphQL Playground at `puti.io:8989/graphql`
+- Go to the GraphQL Playground at `pred.runebase.io:8989/graphql`
 - Click on `SCHEMA` button on the right side
 - Browse through all the queries, mutations, or subscriptions
 
@@ -679,8 +679,8 @@ Gets the total vote balances of a TopicEvent, CentralizedOracle, or Decentralize
         ]
     }
 
-### POST /total-qtum-value
-Gets the total QTUM value of a TopicEvent.
+### POST /total-runebase-value
+Gets the total RUNEBASE value of a TopicEvent.
 
 **Body**
 
@@ -762,7 +762,7 @@ Returns true if the address already withdrew their winnings.
     }
 
 ### POST /winnings
-Returns the amount of PRED and QTUM the participant will receive for winning.
+Returns the amount of PRED and RUNEBASE the participant will receive for winning.
 
 **Body**
 
@@ -775,7 +775,7 @@ Returns the amount of PRED and QTUM the participant will receive for winning.
 
     {
         "0": "1000000000",  // amount of PRED senderAddress will receive
-        "1": "2000000000"   // amount of QTUM senderAddress will receive
+        "1": "2000000000"   // amount of RUNEBASE senderAddress will receive
     }
 
 ### POST /event-address
@@ -868,7 +868,7 @@ Returns an array of transaction fees for a specific transaction.
 
     {
         "type": "APPROVECREATEEVENT",                           // [APPROVECREATEEVENT, CREATEEVENT, BET, APPROVESETRESULT, SETRESULT, APPROVEVOTE, VOTE, FINALIZERESULT, WITHDRAW, WITHDRAWESCROW, TRANSFER]
-        "token": "PRED",                                         // [QTUM, PRED]
+        "token": "PRED",                                         // [RUNEBASE, PRED]
         "amount": "50000000",                                   // Satoshi/Predoshi
         "senderAddress": "qMZK8FNPRm54jvTLAGEs1biTCgyCkcsmna"
     }
@@ -879,7 +879,7 @@ Returns an array of transaction fees for a specific transaction.
         {
             "type": "approve",
             "gasLimit": 250000,
-            "gasCost": "0.10",      // QTUM
+            "gasCost": "0.10",      // RUNEBASE
             "token": "PRED",
             "amount": "50000000"    // Predoshi
         },
@@ -891,3 +891,4 @@ Returns an array of transaction fees for a specific transaction.
             "amount": "50000000"
         }
     ]
+

@@ -3,8 +3,8 @@ FROM node:10
 WORKDIR /root/server
 
 # Create data directories if needed
-RUN mkdir -p /root/.dockervol/.qtum
-RUN mkdir -p /root/.dockervol/.bodhi
+RUN mkdir -p /root/.dockervol/.runebase
+RUN mkdir -p /root/.dockervol/.runebaseprediction
 
 # Install app dependencies
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
